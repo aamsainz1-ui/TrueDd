@@ -4,18 +4,63 @@ import type { BalanceData, Transaction, TransferHistory } from '../types';
 const SUPABASE_URL = 'https://kmloseczqatswwczqajs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I';
 
+// Default API endpoints
+const DEFAULT_ENDPOINTS = {
+  balance: '/functions/v1/true-wallet-balance',
+  transactions: '/functions/v1/true-wallet-transactions',
+  transferSearch: '/functions/v1/true-wallet-transfer-search',
+};
+
+const STORAGE_KEY = 'true-wallet-api-config';
+
+interface APIConfig {
+  balanceApiUrl: string;
+  transactionsApiUrl: string;
+  transferSearchApiUrl: string;
+}
+
 export class TrueWalletService {
   private supabaseUrl: string;
   private supabaseKey: string;
+  private apiConfig: APIConfig;
 
   constructor() {
     this.supabaseUrl = SUPABASE_URL;
     this.supabaseKey = SUPABASE_ANON_KEY;
+    this.apiConfig = this.loadApiConfig();
+    
+    // Listen for config updates
+    window.addEventListener('api-config-updated', ((event: CustomEvent) => {
+      this.apiConfig = event.detail;
+      console.log('API config updated:', this.apiConfig);
+    }) as EventListener);
+  }
+
+  private loadApiConfig(): APIConfig {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load API config:', error);
+    }
+    
+    return {
+      balanceApiUrl: DEFAULT_ENDPOINTS.balance,
+      transactionsApiUrl: DEFAULT_ENDPOINTS.transactions,
+      transferSearchApiUrl: DEFAULT_ENDPOINTS.transferSearch,
+    };
+  }
+
+  private getFullUrl(endpoint: string): string {
+    return endpoint.startsWith('http') ? endpoint : `${this.supabaseUrl}${endpoint}`;
   }
 
   async fetchBalance(): Promise<BalanceData> {
     try {
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/true-wallet-balance`, {
+      const url = this.getFullUrl(this.apiConfig.balanceApiUrl);
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,
@@ -49,7 +94,8 @@ export class TrueWalletService {
 
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/true-wallet-transactions`, {
+      const url = this.getFullUrl(this.apiConfig.transactionsApiUrl);
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,
@@ -116,7 +162,8 @@ export class TrueWalletService {
         requestBody.amount = Math.round(amount * 100); // แปลงจากบาทเป็นสตางค์
       }
 
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/true-wallet-transfer-search`, {
+      const url = this.getFullUrl(this.apiConfig.transferSearchApiUrl);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,

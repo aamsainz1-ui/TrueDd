@@ -5,10 +5,11 @@ import { TransactionList } from './components/TransactionList';
 import { TransferSearch } from './components/TransferSearch';
 import { TransactionHistoryReport } from './components/TransactionHistoryReport';
 import { APIStatus } from './components/APIStatus';
+import { Settings } from './components/Settings';
 import { trueWalletService } from './services/trueWalletService';
 import type { BalanceData, Transaction } from './types';
 
-type Page = 'dashboard' | 'history';
+type Page = 'dashboard' | 'history' | 'settings';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -172,6 +173,16 @@ function App() {
         >
           ประวัติรายการรับเงิน
         </button>
+        <button
+          onClick={() => setCurrentPage('settings')}
+          className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+            currentPage === 'settings'
+              ? 'text-primary border-b-2 border-primary bg-primary/5'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          การตั้งค่า
+        </button>
       </div>
     </div>
   );
@@ -184,6 +195,7 @@ function App() {
         {renderNavigation()}
         {currentPage === 'dashboard' && renderDashboard()}
         {currentPage === 'history' && <TransactionHistoryReport />}
+        {currentPage === 'settings' && <Settings />}
       </main>
 
       <footer className="bg-white border-t border-border mt-12 py-6">

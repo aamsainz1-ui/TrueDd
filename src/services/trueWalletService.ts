@@ -127,42 +127,53 @@ export class TrueWalletService {
 
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
-      // เรียก TrueMoney Transfer Search API ผ่าน Supabase Edge Function proxy
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/proxy-truemoney-balance`, {
-        method: 'POST',
+      // ตรวจสอบการตั้งค่า API ก่อนเรียก
+      const transferSearchUrl = this.apiConfig.transferSearchApiUrl;
+      const transferSearchToken = this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch;
+      
+      if (!transferSearchUrl) {
+        throw new Error('Transfer Search API URL ไม่พบ');
+      }
+      
+      if (!transferSearchToken) {
+        throw new Error('Transfer Search API Token ไม่พบ');
+      }
+
+      console.log('Fetching recent transactions with URL:', transferSearchUrl);
+      console.log('Using token:', transferSearchToken.substring(0, 8) + '...');
+
+      // เรียก TrueMoney Transfer Search API โดยตรง
+      const response = await fetch(transferSearchUrl, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${transferSearchToken}`,
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          endpoint: 'transferSearch',
-          token: this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch,
-        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
+        if (response.status === 401) {
+          throw new Error('Transfer Search API Token ไม่ถูกต้อง');
+        } else if (response.status === 404) {
+          throw new Error('Transfer Search API URL ไม่พบ');
+        } else {
+          throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const result = await response.json();
       console.log('Transfer Search API Response:', result);
       
-      // รูปแบบ: { data: { status: "ok", data: { transactions: [...] } } }
-      const apiData = result.data?.data || result.data;
-      
-      if (!apiData) {
-        return []; // ไม่มีข้อมูล
-      }
-
       // ตรวจสอบ status
-      if (apiData.status === 'err') {
-        throw new Error(apiData.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
+      if (result.status === 'err') {
+        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
       }
       
       // TrueMoney API returns: { status: "ok", data: { transactions: [...] } } หรือ { status: "ok", data: {...} }
-      const transactionData = apiData.data;
+      const transactionData = result.data;
       
       if (!transactionData) {
+        console.log('No transaction data found in response');
         return []; // ไม่มีข้อมูลธุรกรรม
       }
       

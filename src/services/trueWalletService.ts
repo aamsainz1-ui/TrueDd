@@ -14,8 +14,8 @@ const TRUEMONEY_ENDPOINTS = {
 // Tokens ที่ทดสอบแล้ว (เป็นค่าเริ่มต้น)
 const DEFAULT_TOKENS = {
   balance: '5627a2c2088405f97c0608e09f827e2d',
-  transactions: '', // ยังไม่มี token ที่ใช้ได้
-  transferSearch: 'fa52cb89ccde1818855aad656cc20f8b'
+  transactions: 'fa52cb89ccde1818855aad656cc20f8b',
+  transferSearch: '040a02532fa166412247a0a304c5bfbc'
 };
 
 const STORAGE_KEY = 'true-wallet-api-config';
@@ -78,51 +78,46 @@ export class TrueWalletService {
 
   async fetchBalance(): Promise<BalanceData> {
     try {
-      // เรียก TrueMoney Balance API โดยตรง
-      const url = this.apiConfig.balanceApiUrl;
-      const token = this.apiConfig.balanceApiToken;
-      
-      if (!token) {
-        throw new Error('ไม่พบ Balance API Token');
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
+      // เรียก TrueMoney Balance API ผ่าน Supabase Edge Function proxy
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/proxy-truemoney-balance`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          endpoint: 'balance',
+          token: this.apiConfig.balanceApiToken || DEFAULT_TOKENS.balance,
+        }),
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Balance API Token ไม่ถูกต้อง');
-        } else if (response.status === 404) {
-          throw new Error('Balance API URL ไม่พบ');
-        } else {
-          throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
-        }
+        throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('TrueMoney Balance API Response:', result);
+      console.log('Balance API Response:', result);
       
-      // ตรวจสอบ status
-      if (result.status === 'err') {
-        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
+      // รูปแบบ: { data: { status: "ok", data: { balance: "7018725", mobile_no: "...", updated_at: "..." } } }
+      const apiData = result.data?.data || result.data;
+      
+      if (!apiData) {
+        throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
 
-      // TrueMoney API returns: { status: "ok", data: { balance: "7018725", mobile_no: "...", updated_at: "..." } }
-      const apiData = result.data;
+      // ตรวจสอบ status
+      if (apiData.status === 'err') {
+        throw new Error(apiData.err || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
+      }
       
-      if (!apiData || !apiData.balance) {
+      if (!apiData.data || !apiData.data.balance) {
         throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
       
       return {
-        currentBalance: parseFloat(apiData.balance || 0) / 100, // แปลงจากสตางค์เป็นบาท
+        currentBalance: parseFloat(apiData.data.balance || 0) / 100, // แปลงจากสตางค์เป็นบาท
         currency: 'THB',
-        timestamp: apiData.updated_at || new Date().toISOString(),
+        timestamp: apiData.data.updated_at || new Date().toISOString(),
       };
     } catch (error) {
       console.error('Failed to fetch balance:', error);
@@ -132,49 +127,47 @@ export class TrueWalletService {
 
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
-      // เรียก TrueMoney Transfer Search API (สำหรับดูรายการโอนเงินล่าสุด)
-      const url = this.apiConfig.transferSearchApiUrl;
-      const token = this.apiConfig.transferSearchApiToken;
-      
-      if (!token) {
-        throw new Error('ไม่พบ Transfer Search API Token');
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
+      // เรียก TrueMoney Transfer Search API ผ่าน Supabase Edge Function proxy
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/proxy-truemoney-balance`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          endpoint: 'transferSearch',
+          token: this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch,
+        }),
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Transfer Search API Token ไม่ถูกต้อง');
-        } else if (response.status === 404) {
-          throw new Error('Transfer Search API URL ไม่พบ');
-        } else {
-          throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
-        }
+        throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('TrueMoney Transfer Search API Response:', result);
+      console.log('Transfer Search API Response:', result);
       
-      // ตรวจสอบ status
-      if (result.status === 'err') {
-        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
-      }
-
-      // TrueMoney API returns: { status: "ok", data: { event_type, amount, sender_mobile, receiver_mobile, ... } }
-      const apiData = result.data;
+      // รูปแบบ: { data: { status: "ok", data: { transactions: [...] } } }
+      const apiData = result.data?.data || result.data;
       
       if (!apiData) {
         return []; // ไม่มีข้อมูล
       }
+
+      // ตรวจสอบ status
+      if (apiData.status === 'err') {
+        throw new Error(apiData.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
+      }
+      
+      // TrueMoney API returns: { status: "ok", data: { transactions: [...] } } หรือ { status: "ok", data: {...} }
+      const transactionData = apiData.data;
+      
+      if (!transactionData) {
+        return []; // ไม่มีข้อมูลธุรกรรม
+      }
       
       // Convert single transaction to array
-      const transactions = Array.isArray(apiData) ? apiData : [apiData];
+      const transactions = Array.isArray(transactionData) ? transactionData : [transactionData];
       
       const processedTransactions = transactions.map((item: any, index: number) => {
         const amountValue = parseFloat(item.amount || 0) / 100.0; // แปลงจากสตางค์เป็นบาท
@@ -219,58 +212,50 @@ export class TrueWalletService {
         requestBody.amount = Math.round(amount * 100); // แปลงจากบาทเป็นสตางค์
       }
 
-      const url = this.getFullUrl(this.apiConfig.transferSearchApiUrl);
-      const token = this.apiConfig.transferSearchApiToken || this.supabaseKey;
+      // สำหรับ TrueMoney Transfer Search API ใช้ URL โดยตรง
+      const url = this.apiConfig.transferSearchApiUrl;
+      const token = this.apiConfig.transferSearchApiToken;
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        if (response.status === 401) {
+          throw new Error('Transfer Search API Token ไม่ถูกต้อง');
+        } else if (response.status === 404) {
+          throw new Error('Transfer Search API URL ไม่พบ');
+        } else {
+          throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      // ใช้โครงสร้าง API จริง: {status, data: {system_code, transactions}}
-      const apiData = result.data || result;
-      console.log('Full API response structure:', {
-        result: result,
-        apiData: apiData,
-        data: result.data,
-        dataProperty: result.data?.data
-      });
+      console.log('TrueMoney Transfer Search API Response:', result);
       
       // ตรวจสอบ status
-      if (apiData.status === 'err') {
-        throw new Error(apiData.data?.err || apiData.err || 'ไม่พบข้อมูลการโอนเงิน');
+      if (result.status === 'err') {
+        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
+      }
+
+      // TrueMoney API returns: { status: "ok", data: { transactions: [...] } } หรือ { status: "ok", data: {...} }
+      const apiData = result.data;
+      
+      if (!apiData) {
+        return []; // ไม่มีข้อมูล
       }
       
-      // ตรวจสอบ system_code และ transactions - ลองหลายรูปแบบ
-      let transactions = null;
+      // Convert single transaction to array
+      const transactions = Array.isArray(apiData) ? apiData : [apiData];
       
-      // รูปแบบ 1: apiData.data.transactions
-      if (apiData.status === 'ok' && apiData.data?.transactions) {
-        transactions = apiData.data.transactions;
-        console.log('Found transactions in apiData.data.transactions:', transactions.length);
-      }
-      // รูปแบบ 2: apiData.transactions (ถ้าไม่ได้ในรูปแบบแรก)
-      else if (apiData.status === 'ok' && apiData.transactions) {
-        transactions = apiData.transactions;
-        console.log('Found transactions in apiData.transactions:', transactions.length);
+      if (!transactions || transactions.length === 0) {
+        return []; // ไม่มีข้อมูลธุรกรรม
       }
       
-      if (transactions) {
-        
-        const transfers = transactions.map((item: any, index: number) => {
+      const transfers = transactions.map((item: any, index: number) => {
           // Debug: ดูข้อมูล transaction แต่ละรายการ
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);

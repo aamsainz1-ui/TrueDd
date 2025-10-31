@@ -46,8 +46,8 @@ const defaultTrueWallet = {
 
 const trueWalletUrls = {
   balance: 'https://apis.truemoneyservices.com/account/v1/balance',
-  transactions: 'https://api.truemoneyservices.com/transaction/v1/send-money', 
-  transferSearch: 'https://api.truemoneyservices.com/transaction/v1/history'
+  transactions: 'https://apis.truemoneyservices.com/transaction/v1/send-money', 
+  transferSearch: 'https://apis.truemoneyservices.com/transaction/v1/history'
 };
 
 export const Settings: React.FC = () => {
@@ -235,23 +235,13 @@ export const Settings: React.FC = () => {
         return;
       }
 
-      // สร้าง test payload ที่เหมาะสมสำหรับแต่ละ API
-      let testData = {};
-      if (apiType === 'balance') {
-        testData = { test: true, endpoint: 'balance' };
-      } else if (apiType === 'transactions') {
-        testData = { test: true, action: 'validate_endpoint' };
-      } else if (apiType === 'transferSearch') {
-        testData = { test: true, query: 'test_search' };
-      }
-
+      // ใช้ GET method สำหรับ True Wallet APIs (ทดสอบแล้วว่าใช้ได้สำหรับ balance)
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${currentConfig.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(testData)
+          'Accept': 'application/json'
+        }
       });
 
       if (response.ok) {
@@ -259,7 +249,10 @@ export const Settings: React.FC = () => {
         let successMessage = `✅ ${currentConfig.name} API เชื่อมต่อสำเร็จ!\n`;
         successMessage += `• URL: ${url}\n`;
         successMessage += `• Response Status: ${response.status}\n`;
-        successMessage += `• API: ตอบสนองได้`;
+        successMessage += `• Method: GET`;
+        if (result.data) {
+          successMessage += `\n• ข้อมูล: ${JSON.stringify(result.data)}`;
+        }
         
         setSaveMessage({ type: 'success', message: successMessage });
       } else {

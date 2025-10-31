@@ -181,45 +181,45 @@ export function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-            <SettingsIcon className="w-6 h-6 text-primary" />
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">การตั้งค่า API</h2>
-            <p className="text-sm text-muted-foreground">จัดการ API Endpoints สำหรับเชื่อมต่อกับ True Wallet</p>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">การตั้งค่า API</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">จัดการ API Endpoints สำหรับเชื่อมต่อกับ True Wallet</p>
           </div>
         </div>
 
         {saveMessage && (
-          <div className={`mb-6 p-4 rounded-lg ${
+          <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg ${
             saveMessage.type === 'success' 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}>
             <div className="flex items-center gap-2">
               {saveMessage.type === 'success' ? (
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               ) : (
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
               )}
-              <span className="font-medium">{saveMessage.text}</span>
+              <span className="font-medium text-sm sm:text-base">{saveMessage.text}</span>
             </div>
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Balance API */}
-          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-4">
-              <span className="text-base font-bold text-foreground">Balance API</span>
+          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">Balance API</span>
               <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลยอดเงินคงเหลือ</span>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API URL
                 </label>
                 <input
@@ -227,21 +227,21 @@ export function Settings() {
                   value={config.balanceApiUrl}
                   onChange={(e) => setConfig({ ...config, balanceApiUrl: e.target.value })}
                   placeholder="/functions/v1/true-wallet-balance"
-                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API Token
-                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
                 </label>
                 <input
                   type="password"
                   value={config.balanceApiToken}
                   onChange={(e) => setConfig({ ...config, balanceApiToken: e.target.value })}
                   placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
                 />
               </div>
             </div>

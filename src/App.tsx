@@ -151,31 +151,33 @@ function App() {
 
   // Render navigation tabs
   const renderNavigation = () => (
-    <div className="bg-white rounded-xl shadow-md mb-6">
+    <div className="bg-white rounded-xl shadow-md mb-4 sm:mb-6">
       <div className="flex border-b border-border">
         <button
           onClick={() => setCurrentPage('dashboard')}
-          className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
             currentPage === 'dashboard'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           }`}
         >
-          แดชบอร์ดหลัก
+          <span className="hidden sm:inline">แดชบอร์ดหลัก</span>
+          <span className="sm:hidden">หน้าหลัก</span>
         </button>
         <button
           onClick={() => setCurrentPage('history')}
-          className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
             currentPage === 'history'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           }`}
         >
-          ประวัติรายการรับเงิน
+          <span className="hidden sm:inline">ประวัติรายการรับเงิน</span>
+          <span className="sm:hidden">ประวัติ</span>
         </button>
         <button
           onClick={() => setCurrentPage('settings')}
-          className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
             currentPage === 'settings'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -191,15 +193,15 @@ function App() {
     <div className="min-h-screen bg-background">
       <Header onRefresh={handleRefresh} isLoading={isLoading} currentTime={currentTime} />
       
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {renderNavigation()}
         {currentPage === 'dashboard' && renderDashboard()}
         {currentPage === 'history' && <TransactionHistoryReport />}
         {currentPage === 'settings' && <Settings />}
       </main>
 
-      <footer className="bg-white border-t border-border mt-12 py-6">
-        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
+      <footer className="bg-white border-t border-border mt-8 sm:mt-12 py-4 sm:py-6">
+        <div className="container mx-auto px-3 sm:px-4 text-center text-muted-foreground text-xs sm:text-sm">
           <p>True Wallet Dashboard - แดชบอร์ดจัดการเงิน</p>
           <p className="mt-1">พัฒนาโดย MiniMax Agent</p>
         </div>

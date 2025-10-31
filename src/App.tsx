@@ -6,10 +6,11 @@ import { TransferSearch } from './components/TransferSearch';
 import { TransactionHistoryReport } from './components/TransactionHistoryReport';
 import { APIStatus } from './components/APIStatus';
 import { Settings } from './components/Settings';
+import { DailyExportSettings } from './components/DailyExportSettings';
 import { trueWalletService } from './services/trueWalletService';
 import type { BalanceData, Transaction } from './types';
 
-type Page = 'dashboard' | 'history' | 'settings';
+type Page = 'dashboard' | 'history' | 'export' | 'settings';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -152,10 +153,10 @@ function App() {
   // Render navigation tabs
   const renderNavigation = () => (
     <div className="bg-white rounded-xl shadow-md mb-4 sm:mb-6">
-      <div className="flex border-b border-border">
+      <div className="flex border-b border-border overflow-x-auto">
         <button
           onClick={() => setCurrentPage('dashboard')}
-          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-xs sm:text-sm md:text-base font-medium transition-colors touch-manipulation whitespace-nowrap ${
             currentPage === 'dashboard'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -166,7 +167,7 @@ function App() {
         </button>
         <button
           onClick={() => setCurrentPage('history')}
-          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-xs sm:text-sm md:text-base font-medium transition-colors touch-manipulation whitespace-nowrap ${
             currentPage === 'history'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -176,8 +177,19 @@ function App() {
           <span className="sm:hidden">ประวัติ</span>
         </button>
         <button
+          onClick={() => setCurrentPage('export')}
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-xs sm:text-sm md:text-base font-medium transition-colors touch-manipulation whitespace-nowrap ${
+            currentPage === 'export'
+              ? 'text-primary border-b-2 border-primary bg-primary/5'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="hidden sm:inline">ส่งออกข้อมูล</span>
+          <span className="sm:hidden">ส่งออก</span>
+        </button>
+        <button
           onClick={() => setCurrentPage('settings')}
-          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-sm sm:text-base font-medium transition-colors touch-manipulation ${
+          className={`flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center text-xs sm:text-sm md:text-base font-medium transition-colors touch-manipulation whitespace-nowrap ${
             currentPage === 'settings'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -197,6 +209,7 @@ function App() {
         {renderNavigation()}
         {currentPage === 'dashboard' && renderDashboard()}
         {currentPage === 'history' && <TransactionHistoryReport />}
+        {currentPage === 'export' && <DailyExportSettings />}
         {currentPage === 'settings' && <Settings />}
       </main>
 

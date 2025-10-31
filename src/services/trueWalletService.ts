@@ -277,20 +277,14 @@ export class TrueWalletService {
     try {
       console.log('🔍 เริ่มการค้นหาเบอร์โทรศัพท์:', phoneNumber);
       
-      const requestBody: any = { phoneNumber };
-      if (amount !== undefined && amount > 0) {
-        requestBody.amount = Math.round(amount * 100); // แปลงจากบาทเป็นสตางค์
-        console.log('💰 ค้นหาด้วยจำนวนเงิน:', amount, 'บาท');
-      }
-
-      // ใช้ Transfer Search API โดยตรง
-      const url = this.apiConfig.transferSearchApiUrl || TRUEMONEY_ENDPOINTS.transferSearch;
-      const token = this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch;
+      // ใช้ Transactions API แทน Transfer Search API
+      const url = this.apiConfig.transactionsApiUrl || TRUEMONEY_ENDPOINTS.transactions;
+      const token = this.apiConfig.transactionsApiToken || DEFAULT_TOKENS.transactions;
       
-      console.log('🔧 Transfer Search API Config:');
+      console.log('🔧 Search Transfers API Config:');
       console.log('  - URL:', url);
       console.log('  - Token:', token ? `${token.substring(0, 8)}...` : 'ไม่พบ');
-      console.log('  - ปลายทาง:', url === TRUEMONEY_ENDPOINTS.transferSearch ? '✅ Direct API call' : '🔧 Custom');
+      console.log('  - ปลายทาง:', url === TRUEMONEY_ENDPOINTS.transactions ? '✅ Direct API call' : '🔧 Custom');
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -308,16 +302,16 @@ export class TrueWalletService {
         });
         
         if (response.status === 401) {
-          throw new Error('🔐 Transfer Search API Token ไม่ถูกต้อง');
+          throw new Error('🔐 Transactions API Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('🔍 Transfer Search API URL ไม่พบ');
+          throw new Error('🔍 Transactions API URL ไม่พบ');
         } else {
-          throw new Error(`❌ Transfer Search API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ Transactions API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('📋 Transfer Search API Response:', result);
+      console.log('📋 Search Transfers API Response:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
       // ตรวจสอบ status
@@ -336,14 +330,29 @@ export class TrueWalletService {
       // Convert single transaction to array
       const transactions = Array.isArray(apiData) ? apiData : [apiData];
       
+      // กรองธุรกรรมที่เกี่ยวข้องกับเบอร์ที่ค้นหา
+      const relevantTransactions = transactions.filter(item => {
+        const sender = item.sender_mobile || '';
+        const receiver = item.receiver_mobile || '';
+        return sender.includes(phoneNumber) || receiver.includes(phoneNumber);
+      });
+      
+      console.log(`📊 พบธุรกรรมทั้งหมด: ${transactions.length} รายการ`);
+      console.log(`🎯 พบธุรกรรมที่เกี่ยวข้องกับ ${phoneNumber}: ${relevantTransactions.length} รายการ`);
+      
+      if (relevantTransactions.length === 0) {
+        console.log(`🔍 ไม่พบธุรกรรมที่เกี่ยวข้องกับเบอร์ ${phoneNumber}`);
+        return [];
+      }
+      
       if (!transactions || transactions.length === 0) {
         console.log('❌ ไม่พบรายการธุรกรรมสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูลธุรกรรม
       }
       
-      console.log('✅ พบรายการธุรกรรม', transactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);
+      console.log('✅ พบรายการธุรกรรม', relevantTransactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);
       
-      const transfers = transactions.map((item: any, index: number) => {
+      const transfers = relevantTransactions.map((item: any, index: number) => {
           // Debug: ดูข้อมูล transaction แต่ละรายการ
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);

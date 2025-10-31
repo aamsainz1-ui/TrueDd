@@ -275,14 +275,22 @@ export class TrueWalletService {
 
   async searchTransfersByPhone(phoneNumber: string, amount?: number): Promise<TransferHistory[]> {
     try {
+      console.log('🔍 เริ่มการค้นหาเบอร์โทรศัพท์:', phoneNumber);
+      
       const requestBody: any = { phoneNumber };
       if (amount !== undefined && amount > 0) {
         requestBody.amount = Math.round(amount * 100); // แปลงจากบาทเป็นสตางค์
+        console.log('💰 ค้นหาด้วยจำนวนเงิน:', amount, 'บาท');
       }
 
-      // สำหรับ TrueMoney Transfer Search API ใช้ URL โดยตรง
-      const url = this.apiConfig.transferSearchApiUrl;
-      const token = this.apiConfig.transferSearchApiToken;
+      // ใช้ Transfer Search API โดยตรง
+      const url = this.apiConfig.transferSearchApiUrl || TRUEMONEY_ENDPOINTS.transferSearch;
+      const token = this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch;
+      
+      console.log('🔧 Transfer Search API Config:');
+      console.log('  - URL:', url);
+      console.log('  - Token:', token ? `${token.substring(0, 8)}...` : 'ไม่พบ');
+      console.log('  - ปลายทาง:', url === TRUEMONEY_ENDPOINTS.transferSearch ? '✅ Direct API call' : '🔧 Custom');
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -292,17 +300,25 @@ export class TrueWalletService {
       });
 
       if (!response.ok) {
+        console.error('❌ Transfer Search API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: url,
+          phoneNumber: phoneNumber
+        });
+        
         if (response.status === 401) {
-          throw new Error('Transfer Search API Token ไม่ถูกต้อง');
+          throw new Error('🔐 Transfer Search API Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Transfer Search API URL ไม่พบ');
+          throw new Error('🔍 Transfer Search API URL ไม่พบ');
         } else {
-          throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ Transfer Search API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('TrueMoney Transfer Search API Response:', result);
+      console.log('📋 Transfer Search API Response:', result);
+      console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
       // ตรวจสอบ status
       if (result.status === 'err') {

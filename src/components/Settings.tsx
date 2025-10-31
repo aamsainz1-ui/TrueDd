@@ -3,8 +3,11 @@ import { Settings as SettingsIcon, Check, X, RefreshCw, Save, Download } from 'l
 
 interface APIConfig {
   balanceApiUrl: string;
+  balanceApiToken: string;
   transactionsApiUrl: string;
+  transactionsApiToken: string;
   transferSearchApiUrl: string;
+  transferSearchApiToken: string;
 }
 
 interface TestStatus {
@@ -14,8 +17,11 @@ interface TestStatus {
 
 const DEFAULT_CONFIG: APIConfig = {
   balanceApiUrl: '/functions/v1/true-wallet-balance',
+  balanceApiToken: '',
   transactionsApiUrl: '/functions/v1/true-wallet-transactions',
+  transactionsApiToken: '',
   transferSearchApiUrl: '/functions/v1/true-wallet-transfer-search',
+  transferSearchApiToken: '',
 };
 
 const STORAGE_KEY = 'true-wallet-api-config';
@@ -71,6 +77,7 @@ export function Settings() {
   const testConnection = async (
     apiType: 'balance' | 'transactions' | 'transfer',
     url: string,
+    token: string,
     setStatus: (status: TestStatus) => void
   ) => {
     setStatus({ status: 'loading', message: 'กำลังทดสอบ...' });
@@ -78,7 +85,7 @@ export function Settings() {
     try {
       // Get Supabase config from service
       const supabaseUrl = 'https://kmloseczqatswwczqajs.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I';
+      const apiToken = token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I';
 
       const fullUrl = url.startsWith('http') ? url : `${supabaseUrl}${url}`;
 
@@ -88,7 +95,7 @@ export function Settings() {
         response = await fetch(fullUrl, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
+            'Authorization': `Bearer ${apiToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ phoneNumber: '0000000000' }) // Test with dummy phone
@@ -97,7 +104,7 @@ export function Settings() {
         response = await fetch(fullUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
+            'Authorization': `Bearer ${apiToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -131,6 +138,7 @@ export function Settings() {
     label: string,
     apiType: 'balance' | 'transactions' | 'transfer',
     url: string,
+    token: string,
     status: TestStatus,
     setStatus: (status: TestStatus) => void
   ) => {
@@ -143,7 +151,7 @@ export function Settings() {
     return (
       <div className="space-y-2">
         <button
-          onClick={() => testConnection(apiType, url, setStatus)}
+          onClick={() => testConnection(apiType, url, token, setStatus)}
           disabled={isLoading || !url}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -203,69 +211,147 @@ export function Settings() {
 
         <div className="space-y-6">
           {/* Balance API */}
-          <div className="border border-border rounded-lg p-4">
-            <label className="block mb-2">
-              <span className="text-sm font-semibold text-foreground">Balance API</span>
-              <span className="text-xs text-muted-foreground ml-2">สำหรับดึงข้อมูลยอดเงินคงเหลือ</span>
-            </label>
-            <input
-              type="text"
-              value={config.balanceApiUrl}
-              onChange={(e) => setConfig({ ...config, balanceApiUrl: e.target.value })}
-              placeholder="/functions/v1/true-wallet-balance"
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3"
-            />
-            {renderTestButton(
-              'Balance API',
-              'balance',
-              config.balanceApiUrl,
-              balanceStatus,
-              setBalanceStatus
-            )}
+          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-4">
+              <span className="text-base font-bold text-foreground">Balance API</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลยอดเงินคงเหลือ</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API URL
+                </label>
+                <input
+                  type="text"
+                  value={config.balanceApiUrl}
+                  onChange={(e) => setConfig({ ...config, balanceApiUrl: e.target.value })}
+                  placeholder="/functions/v1/true-wallet-balance"
+                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API Token
+                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.balanceApiToken}
+                  onChange={(e) => setConfig({ ...config, balanceApiToken: e.target.value })}
+                  placeholder="Bearer Token (ถ้ามี)"
+                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              {renderTestButton(
+                'Balance API',
+                'balance',
+                config.balanceApiUrl,
+                config.balanceApiToken,
+                balanceStatus,
+                setBalanceStatus
+              )}
+            </div>
           </div>
 
           {/* Transactions API */}
-          <div className="border border-border rounded-lg p-4">
-            <label className="block mb-2">
-              <span className="text-sm font-semibold text-foreground">Transactions API</span>
-              <span className="text-xs text-muted-foreground ml-2">สำหรับดึงข้อมูลรายการธุรกรรมล่าสุด</span>
-            </label>
-            <input
-              type="text"
-              value={config.transactionsApiUrl}
-              onChange={(e) => setConfig({ ...config, transactionsApiUrl: e.target.value })}
-              placeholder="/functions/v1/true-wallet-transactions"
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3"
-            />
-            {renderTestButton(
-              'Transactions API',
-              'transactions',
-              config.transactionsApiUrl,
-              transactionsStatus,
-              setTransactionsStatus
-            )}
+          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-4">
+              <span className="text-base font-bold text-foreground">Transactions API</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลรายการธุรกรรมล่าสุด</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API URL
+                </label>
+                <input
+                  type="text"
+                  value={config.transactionsApiUrl}
+                  onChange={(e) => setConfig({ ...config, transactionsApiUrl: e.target.value })}
+                  placeholder="/functions/v1/true-wallet-transactions"
+                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API Token
+                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.transactionsApiToken}
+                  onChange={(e) => setConfig({ ...config, transactionsApiToken: e.target.value })}
+                  placeholder="Bearer Token (ถ้ามี)"
+                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              {renderTestButton(
+                'Transactions API',
+                'transactions',
+                config.transactionsApiUrl,
+                config.transactionsApiToken,
+                transactionsStatus,
+                setTransactionsStatus
+              )}
+            </div>
           </div>
 
           {/* Transfer Search API */}
-          <div className="border border-border rounded-lg p-4">
-            <label className="block mb-2">
-              <span className="text-sm font-semibold text-foreground">Transfer Search API</span>
-              <span className="text-xs text-muted-foreground ml-2">สำหรับค้นหาประวัติการโอนเงิน</span>
-            </label>
-            <input
-              type="text"
-              value={config.transferSearchApiUrl}
-              onChange={(e) => setConfig({ ...config, transferSearchApiUrl: e.target.value })}
-              placeholder="/functions/v1/true-wallet-transfer-search"
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3"
-            />
-            {renderTestButton(
-              'Transfer Search API',
-              'transfer',
-              config.transferSearchApiUrl,
-              transferStatus,
-              setTransferStatus
-            )}
+          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-4">
+              <span className="text-base font-bold text-foreground">Transfer Search API</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับค้นหาประวัติการโอนเงิน</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API URL
+                </label>
+                <input
+                  type="text"
+                  value={config.transferSearchApiUrl}
+                  onChange={(e) => setConfig({ ...config, transferSearchApiUrl: e.target.value })}
+                  placeholder="/functions/v1/true-wallet-transfer-search"
+                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  API Token
+                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.transferSearchApiToken}
+                  onChange={(e) => setConfig({ ...config, transferSearchApiToken: e.target.value })}
+                  placeholder="Bearer Token (ถ้ามี)"
+                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              {renderTestButton(
+                'Transfer Search API',
+                'transfer',
+                config.transferSearchApiUrl,
+                config.transferSearchApiToken,
+                transferStatus,
+                setTransferStatus
+              )}
+            </div>
           </div>
         </div>
 

@@ -15,8 +15,11 @@ const STORAGE_KEY = 'true-wallet-api-config';
 
 interface APIConfig {
   balanceApiUrl: string;
+  balanceApiToken: string;
   transactionsApiUrl: string;
+  transactionsApiToken: string;
   transferSearchApiUrl: string;
+  transferSearchApiToken: string;
 }
 
 export class TrueWalletService {
@@ -48,8 +51,11 @@ export class TrueWalletService {
     
     return {
       balanceApiUrl: DEFAULT_ENDPOINTS.balance,
+      balanceApiToken: '',
       transactionsApiUrl: DEFAULT_ENDPOINTS.transactions,
+      transactionsApiToken: '',
       transferSearchApiUrl: DEFAULT_ENDPOINTS.transferSearch,
+      transferSearchApiToken: '',
     };
   }
 
@@ -60,10 +66,11 @@ export class TrueWalletService {
   async fetchBalance(): Promise<BalanceData> {
     try {
       const url = this.getFullUrl(this.apiConfig.balanceApiUrl);
+      const token = this.apiConfig.balanceApiToken || this.supabaseKey;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -95,10 +102,11 @@ export class TrueWalletService {
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
       const url = this.getFullUrl(this.apiConfig.transactionsApiUrl);
+      const token = this.apiConfig.transactionsApiToken || this.supabaseKey;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -163,10 +171,11 @@ export class TrueWalletService {
       }
 
       const url = this.getFullUrl(this.apiConfig.transferSearchApiUrl);
+      const token = this.apiConfig.transferSearchApiToken || this.supabaseKey;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody)

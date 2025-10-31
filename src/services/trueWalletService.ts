@@ -50,13 +50,30 @@ export class TrueWalletService {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        console.log('✅ โหลด API config จาก localStorage:', parsed);
+        
+        // ตรวจสอบและปรับปรุงการตั้งค่าหากจำเป็น
+        const updatedConfig = {
+          ...parsed,
+          // ตรวจสอบว่า transactionsApiUrl ถูกต้อง
+          transactionsApiUrl: parsed.transactionsApiUrl || TRUEMONEY_ENDPOINTS.transactions,
+          transactionsApiToken: parsed.transactionsApiToken || DEFAULT_TOKENS.transactions,
+        };
+        
+        console.log('🔧 ใช้ Transactions API:', {
+          url: updatedConfig.transactionsApiUrl,
+          token: updatedConfig.transactionsApiToken ? `${updatedConfig.transactionsApiToken.substring(0, 8)}...` : 'ไม่พบ'
+        });
+        
+        return updatedConfig;
       }
     } catch (error) {
-      console.error('Failed to load API config:', error);
+      console.error('❌ Failed to load API config:', error);
     }
     
-    // ใช้ TrueMoney endpoints และ tokens ที่ทดสอบแล้ว
+    // ใช้ TrueMoney endpoints และ tokens ที่ทดสอบแล้ว (Default config)
+    console.log('🚀 ใช้ default Transactions API config');
     return {
       balanceApiUrl: TRUEMONEY_ENDPOINTS.balance,
       balanceApiToken: DEFAULT_TOKENS.balance,
@@ -127,9 +144,14 @@ export class TrueWalletService {
 
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
-      // ตรวจสอบการตั้งค่า API ก่อนเรียก
+      // ใช้ Transactions API URL และ Token ที่ถูกต้องเสมอ
       const transactionsUrl = this.apiConfig.transactionsApiUrl || TRUEMONEY_ENDPOINTS.transactions;
       const transactionsToken = this.apiConfig.transactionsApiToken || DEFAULT_TOKENS.transactions;
+      
+      console.log('🔧 ตรวจสอบ Transactions API Config:');
+      console.log('  - URL:', transactionsUrl);
+      console.log('  - Token:', transactionsToken ? `${transactionsToken.substring(0, 8)}...` : 'ไม่พบ');
+      console.log('  - ปลายทาง:', transactionsUrl === TRUEMONEY_ENDPOINTS.transactions ? '✅ Default (my-last-receive)' : '🔧 Custom');
       
       if (!transactionsUrl) {
         throw new Error('Transactions API URL ไม่พบ');
@@ -139,8 +161,8 @@ export class TrueWalletService {
         throw new Error('Transactions API Token ไม่พบ');
       }
 
-      console.log('Fetching recent transactions with URL:', transactionsUrl);
-      console.log('Using token:', transactionsToken.substring(0, 8) + '...');
+      console.log('📡 เรียก Transactions API ด้วย URL:', transactionsUrl);
+      console.log('🔑 ใช้ token:', transactionsToken.substring(0, 8) + '...');
 
       // เรียก TrueMoney Transactions API (my-last-receive) โดยตรง
       const response = await fetch(transactionsUrl, {
@@ -152,17 +174,23 @@ export class TrueWalletService {
       });
 
       if (!response.ok) {
+        console.error('❌ Transactions API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: transactionsUrl
+        });
+        
         if (response.status === 401) {
-          throw new Error('Transactions API Token ไม่ถูกต้อง');
+          throw new Error('🔐 Transactions API Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Transactions API URL ไม่พบ');
+          throw new Error('🔍 Transactions API URL ไม่พบ');
         } else {
-          throw new Error(`Transactions API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ Transactions API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('Transactions API Response:', result);
+      console.log('📋 Transactions API Response:', result);
       
       // ตรวจสอบ status
       if (result.status === 'err') {
@@ -359,11 +387,6 @@ export class TrueWalletService {
         }, 1000); // Wait 1 second for database to be updated
         
         return transfers;
-      }
-      
-      // Fallback case - ไม่พบ transactions
-      console.log('No transactions found in response');
-      return [];
       
     } catch (error) {
       console.error('Failed to search transfers:', error);

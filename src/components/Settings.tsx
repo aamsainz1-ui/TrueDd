@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Check, X, RefreshCw, Save, Download } from 'lucide-react';
 
 interface APIConfig {
+  // Supabase Configuration
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  
+  // True Wallet API Configuration
   balanceApiUrl: string;
   balanceApiToken: string;
   transactionsApiUrl: string;
   transactionsApiToken: string;
   transferSearchApiUrl: string;
   transferSearchApiToken: string;
+  
+  // Notification Services
   telegramBotToken: string;
   telegramChatId: string;
   lineNotifyToken: string;
@@ -19,6 +26,8 @@ interface SaveMessage {
 }
 
 const defaultConfig: APIConfig = {
+  supabaseUrl: '',
+  supabaseAnonKey: '',
   balanceApiUrl: '',
   balanceApiToken: '',
   transactionsApiUrl: '',
@@ -28,6 +37,11 @@ const defaultConfig: APIConfig = {
   telegramBotToken: '',
   telegramChatId: '',
   lineNotifyToken: ''
+};
+
+const defaultSupabase = {
+  supabaseUrl: 'https://kmloseczqatswwczqajs.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I'
 };
 
 const defaultBalances = {
@@ -80,7 +94,61 @@ export const Settings: React.FC = () => {
   };
 
   const resetToDefault = () => {
-    setConfig(defaultBalances as APIConfig);
+    setConfig({ ...defaultConfig, ...defaultSupabase });
+  };
+
+  const testSupabaseConnection = async () => {
+    try {
+      setSaveMessage({ type: 'success', message: 'กำลังทดสอบการเชื่อมต่อ Supabase...' });
+      
+      if (!config.supabaseUrl || !config.supabaseAnonKey) {
+        setSaveMessage({ type: 'error', message: 'กรุณากรอก Supabase URL และ Anon Key' });
+        return;
+      }
+
+      // Call the api-connection-test Edge Function
+      const functionUrl = `${config.supabaseUrl}/functions/v1/api-connection-test`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.supabaseAnonKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ test: 'full_connection' })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        const testResult = result.data;
+        let message = `✅ เชื่อมต่อสำเร็จ!\n`;
+        message += `• Environment Variables: ${testResult.envVars ? 'OK' : 'Missing'}\n`;
+        message += `• API Connection: ${testResult.apiConnection ? 'OK' : 'Failed'}\n`;
+        message += `• Database Structure: ${testResult.database ? 'OK' : 'Error'}\n`;
+        message += `• Response Time: ${testResult.responseTime}ms\n`;
+        
+        if (testResult.database?.tables) {
+          message += `• Tables Found: ${testResult.database.tables.join(', ')}`;
+        }
+        
+        setSaveMessage({ type: 'success', message });
+      } else {
+        const errorCode = result.error?.code || 'UNKNOWN_ERROR';
+        const errorMessage = result.error?.message || 'Unknown error';
+        const troubleshooting = result.error?.troubleshooting || 'No troubleshooting info available';
+        
+        setSaveMessage({ 
+          type: 'error', 
+          message: `❌ เชื่อมต่อล้มเหลว (${errorCode})\n${errorMessage}\n\n🔧 แนะนำ: ${troubleshooting}` 
+        });
+      }
+    } catch (error) {
+      console.error('Test connection error:', error);
+      setSaveMessage({ 
+        type: 'error', 
+        message: `❌ เกิดข้อผิดพลาดในการทดสอบ\nError: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+    }
   };
 
   const handleExport = () => {
@@ -182,9 +250,60 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
+        {/* Supabase Settings */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า Supabase</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                Supabase URL
+              </label>
+              <input
+                type="url"
+                value={config.supabaseUrl}
+                onChange={(e) => handleInputChange('supabaseUrl', e.target.value)}
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                placeholder="https://your-project.supabase.co"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                Supabase Anon Key
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={config.supabaseAnonKey}
+                  onChange={(e) => handleInputChange('supabaseAnonKey', e.target.value)}
+                  className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                />
+                <button
+                  onClick={testSupabaseConnection}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-h-[44px] flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>ทดสอบการเชื่อมต่อ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-xs font-semibold text-blue-900 mb-2">🔑 วิธีหา Supabase URL และ Anon Key:</h4>
+            <ul className="text-xs text-blue-800 space-y-1">
+              <li>1. เข้าสู่ Supabase Dashboard ของคุณ</li>
+              <li>2. เลือก Project ที่ต้องการใช้งาน</li>
+              <li>3. ไปที่ Settings → API</li>
+              <li>4. คัดลอก URL และ Anon Key</li>
+            </ul>
+          </div>
+        </div>
+
         {/* API Settings */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า API</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า True Wallet API</h3>
           <div className="grid gap-4 sm:gap-6">
             <div className="space-y-4">
               <div>
@@ -352,6 +471,15 @@ export const Settings: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button
+            onClick={saveConfig}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
+          >
+            <Save className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">บันทึกการตั้งค่าทั้งหมด</span>
+          </button>
+          
           <button
             onClick={handleExport}
             className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"

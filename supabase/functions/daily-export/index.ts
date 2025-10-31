@@ -76,7 +76,12 @@ Deno.serve(async (req) => {
 
     // 2. สร้างไฟล์ CSV
     const csvContent = generateCSV(transactions);
-    const fileName = `daily-transaction-${exportDate}.csv`;
+    
+    // สร้าง timestamp และ UUID เพื่อป้องกันชื่อไฟล์ซ้ำ
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
+    const uuid = crypto.randomUUID().split('-')[0]; // ใช้ส่วนแรกของ UUID
+    const fileName = `daily-transaction-${exportDate}_${timestamp}_${uuid}.csv`;
 
     // 3. อัปโหลดไฟล์ไปที่ Storage bucket "daily-exports"
     const uploadResponse = await fetch(

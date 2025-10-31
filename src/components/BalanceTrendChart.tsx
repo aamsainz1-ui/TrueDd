@@ -71,7 +71,11 @@ export const BalanceTrendChart: React.FC = () => {
 
   // เรียงข้อมูลใหม่ให้เป็น 7 วันล่าสุด
   const sortedChartData = useMemo(() => {
-    return chartData.slice(-7);
+    console.log('📊 Total data points:', chartData.length);
+    console.log('📊 Data dates:', chartData.map(d => d.date));
+    const last7Days = chartData.slice(-7);
+    console.log('📊 Last 7 days:', last7Days.map(d => `${d.date} (${d.dateLabel}): ฿${d.dailyIncome}, ${d.transactionCount} รายการ`));
+    return last7Days;
   }, [chartData]);
 
   if (isLoading) {
@@ -102,8 +106,8 @@ export const BalanceTrendChart: React.FC = () => {
   // สร้าง SVG chart
   const createSVGChart = () => {
     const width = 600;
-    const height = 250;
-    const padding = 40;
+    const height = 280;
+    const padding = 50; // เพิ่ม padding สำหรับ labels
     
     const dailyIncomes = sortedChartData.map(d => d.dailyIncome);
     const minIncome = Math.min(...dailyIncomes, 0);
@@ -168,7 +172,7 @@ export const BalanceTrendChart: React.FC = () => {
     });
     
     return (
-      <svg width={width} height={height} className="w-full h-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
         {/* Grid lines */}
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -225,7 +229,7 @@ export const BalanceTrendChart: React.FC = () => {
         </div>
       </div>
       
-      <div className="h-64 w-full overflow-x-auto">
+      <div className="w-full" style={{ minHeight: '200px' }}>
         {createSVGChart()}
       </div>
 

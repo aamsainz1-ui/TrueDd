@@ -8,6 +8,9 @@ interface APIConfig {
   transactionsApiToken: string;
   transferSearchApiUrl: string;
   transferSearchApiToken: string;
+  telegramBotToken: string;
+  telegramChatId: string;
+  lineNotifyToken: string;
 }
 
 interface TestStatus {
@@ -22,6 +25,9 @@ const DEFAULT_CONFIG: APIConfig = {
   transactionsApiToken: '',
   transferSearchApiUrl: '/functions/v1/true-wallet-transfer-search',
   transferSearchApiToken: '',
+  telegramBotToken: '',
+  telegramChatId: '',
+  lineNotifyToken: '',
 };
 
 const STORAGE_KEY = 'true-wallet-api-config';
@@ -351,6 +357,68 @@ export function Settings() {
                 transferStatus,
                 setTransferStatus
               )}
+            </div>
+          </div>
+
+          {/* Telegram Bot Settings */}
+          <div className="border-2 border-blue-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">📱 Telegram Bot Settings</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งไฟล์ CSV ผ่าน Telegram Bot</span>
+            </div>
+            
+            <div className="space-y-2.5 sm:space-y-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
+                  Bot Token
+                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Bot Token จาก @BotFather</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.telegramBotToken}
+                  onChange={(e) => setConfig({ ...config, telegramBotToken: e.target.value })}
+                  placeholder="1234567890:AAEfr... (เริ่มต้นด้วยตัวเลข)"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
+                  Chat ID
+                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">📧 รหัส Chat หรือ Group</span>
+                </label>
+                <input
+                  type="text"
+                  value={config.telegramChatId}
+                  onChange={(e) => setConfig({ ...config, telegramChatId: e.target.value })}
+                  placeholder="-1001234567890 (Group) หรือ 123456789 (User)"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* LINE Notify Settings */}
+          <div className="border-2 border-green-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-green-50 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">💬 LINE Notify Settings</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งแจ้งเตือนผ่าน LINE Notify</span>
+            </div>
+            
+            <div className="space-y-2.5 sm:space-y-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
+                  Access Token
+                  <span className="block sm:inline text-xs text-green-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Access Token จาก LINE Notify</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.lineNotifyToken}
+                  onChange={(e) => setConfig({ ...config, lineNotifyToken: e.target.value })}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-400 bg-green-50 touch-manipulation"
+                />
+              </div>
             </div>
           </div>
         </div>

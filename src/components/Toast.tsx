@@ -43,30 +43,36 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
     }
   };
 
+  const getToastStyles = () => {
+    switch (type) {
+      case 'success':
+        return { bgColor: 'bg-green-600', icon: <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> };
+      case 'error':
+        return { bgColor: 'bg-red-500', icon: <XCircle className="w-4 h-4 flex-shrink-0" /> };
+      case 'warning':
+        return { bgColor: 'bg-yellow-500', icon: <AlertCircle className="w-4 h-4 flex-shrink-0" /> };
+      default:
+        return { bgColor: 'bg-green-600', icon: <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> };
+    }
+  };
+
+  const { bgColor, icon } = getToastStyles();
+
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] animate-slide-down">
-      <div
-        className={`${getBackgroundColor()} text-white rounded-xl shadow-2xl max-w-md mx-4 overflow-hidden backdrop-blur-sm`}
-      >
-        <div className="flex items-center gap-3 p-3 sm:p-4">
-          {getIcon()}
-          <p className="flex-1 text-sm sm:text-base font-medium leading-relaxed">
+      <div className={`${bgColor} text-white rounded-lg shadow-xl max-w-sm mx-4 overflow-hidden`}>
+        <div className="flex items-center gap-2 px-3 py-2">
+          {icon}
+          <p className="flex-1 text-sm font-medium whitespace-nowrap truncate">
             {message}
           </p>
           <button
             onClick={onClose}
-            className="flex-shrink-0 hover:bg-white/20 rounded-lg p-1 transition-colors"
+            className="flex-shrink-0 hover:bg-white/20 rounded p-1 transition-colors"
             aria-label="ปิด"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+            <X className="w-4 h-4" />
           </button>
-        </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-white/20">
-          <div
-            className="h-full bg-white/80 animate-progress"
-            style={{ animationDuration: `${duration}ms` }}
-          />
         </div>
       </div>
     </div>

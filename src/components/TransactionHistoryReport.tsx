@@ -34,6 +34,7 @@ export function TransactionHistoryReport() {
     limit: 100
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
@@ -56,6 +57,26 @@ export function TransactionHistoryReport() {
     return dailyTotals[0].total; // วันที่มีรายการล่าสุด (เรียงจากใหม่ไปเก่า)
   };
 
+  // คำนวณยอดรวมของเดือนปัจจุบัน (พฤศจิกายน 2025)
+  const getCurrentMonthTotal = (dailyTotals: Array<{ date: string; total: number; count: number }>) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+
+    let total = 0;
+    let count = 0;
+    
+    dailyTotals.forEach(day => {
+      const dayDate = new Date(day.date);
+      if (dayDate.getFullYear() === currentYear && dayDate.getMonth() === currentMonth) {
+        total += day.total;
+        count += day.count;
+      }
+    });
+
+    return { total, count };
+  };
+
   const formatDateTime = (date: string, time: string) => {
     const dateObj = new Date(`${date}T${time}`);
     const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -73,6 +94,7 @@ export function TransactionHistoryReport() {
       console.log('Received transaction history data:', data);
       setTransactions(data.transactions);
       setSummary(data.summary);
+      setLastUpdate(new Date());
     } catch (err) {
       console.error('Error fetching transaction history:', err);
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูล');
@@ -292,25 +314,44 @@ export function TransactionHistoryReport() {
 
         {/* Summary */}
         {summary && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-            <div className="bg-primary/10 rounded-lg p-3 sm:p-4">
-              <div className="text-xl sm:text-2xl font-bold text-primary">{summary.totalTransactions}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">จำนวนรายการทั้งหมด</div>
-            </div>
-            <div className="bg-success/10 rounded-lg p-3 sm:p-4">
-              <div className="text-xl sm:text-2xl font-bold text-success">฿{formatCurrency(getLatestDayTotal(summary.dailyTotals))}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">ยอดรวมวันล่าสุด</div>
-            </div>
-            <div className="bg-accent/10 rounded-lg p-3 sm:p-4 sm:col-span-2 md:col-span-1">
-              <div className="text-xl sm:text-2xl font-bold text-accent">
-                {summary.dailyTotals.length > 0 ? 
-                  new Date(summary.dailyTotals[0].date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }) : 
-                  '-'
-                }
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm text-muted-foreground">
+                อัปเดต: {lastUpdate.toLocaleTimeString('th-TH', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground">วันที่มีรายการล่าสุด</div>
             </div>
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-primary/10 rounded-lg p-3 sm:p-4">
+                <div className="text-xl sm:text-2xl font-bold text-primary">{summary.totalTransactions}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">จำนวนรายการทั้งหมด</div>
+              </div>
+              <div className="bg-success/10 rounded-lg p-3 sm:p-4">
+                <div className="text-xl sm:text-2xl font-bold text-success">฿{formatCurrency(getLatestDayTotal(summary.dailyTotals))}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">ยอดรวมวันล่าสุด</div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                  ฿{formatCurrency(getCurrentMonthTotal(summary.dailyTotals).total)}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  ยอดรวมเดือนนี้ ({getCurrentMonthTotal(summary.dailyTotals).count} รายการ)
+                </div>
+              </div>
+              <div className="bg-accent/10 rounded-lg p-3 sm:p-4">
+                <div className="text-xl sm:text-2xl font-bold text-accent">
+                  {summary.dailyTotals.length > 0 ? 
+                    new Date(summary.dailyTotals[0].date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }) : 
+                    '-'
+                  }
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">วันที่มีรายการล่าสุด</div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

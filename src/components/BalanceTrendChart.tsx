@@ -11,6 +11,7 @@ export const BalanceTrendChart: React.FC = () => {
   const [chartData, setChartData] = useState<DailyIncomeData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   // ดึงข้อมูลสรุปยอดรับเงินรายวัน
   const fetchDailyIncomeData = async () => {
@@ -44,6 +45,7 @@ export const BalanceTrendChart: React.FC = () => {
       if (result.success) {
         console.log('✅ ข้อมูลที่ได้รับ:', result.data);
         setChartData(result.data);
+        setLastUpdate(new Date());
       } else {
         throw new Error(result.error?.message || 'Failed to fetch data');
       }
@@ -57,6 +59,14 @@ export const BalanceTrendChart: React.FC = () => {
 
   useEffect(() => {
     fetchDailyIncomeData();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      console.log('⏰ Auto-refresh: ดึงข้อมูล daily income...');
+      fetchDailyIncomeData();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // เรียงข้อมูลใหม่ให้เป็น 7 วันล่าสุด
@@ -197,11 +207,21 @@ export const BalanceTrendChart: React.FC = () => {
     <div className="bg-white rounded-xl shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">แนวโน้มยอดรับเงินรายวัน (7 วันล่าสุด)</h3>
-        <div className="text-xs text-muted-foreground">
-          อัปเดต: {new Date().toLocaleTimeString('th-TH', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-muted-foreground">
+            อัปเดต: {lastUpdate.toLocaleTimeString('th-TH', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </div>
+          <button
+            onClick={fetchDailyIncomeData}
+            disabled={isLoading}
+            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="รีเฟรชข้อมูล"
+          >
+            <span className={`text-primary text-sm ${isLoading ? 'animate-spin' : ''}`}>↻</span>
+          </button>
         </div>
       </div>
       

@@ -235,28 +235,14 @@ export const Settings: React.FC = () => {
         return;
       }
 
-      // ใช้ GET method สำหรับ Balance API และ POST method สำหรับ Transactions และ Transfer Search API
-      let response;
-      if (apiType === 'balance') {
-        // Balance API ใช้ GET method (ทดสอบสำเร็จ)
-        response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${currentConfig.token}`,
-            'Accept': 'application/json'
-          }
-        });
-      } else {
-        // Transactions และ Transfer Search API ใช้ POST method
-        response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${currentConfig.token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        });
-      }
+      // ใช้ GET method สำหรับ True Wallet APIs ทั้งหมด
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${currentConfig.token}`,
+          'Accept': 'application/json'
+        }
+      });
 
       if (response.ok) {
         const result = await response.json();

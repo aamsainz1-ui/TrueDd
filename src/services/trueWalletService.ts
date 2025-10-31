@@ -329,6 +329,7 @@ export class TrueWalletService {
       const apiData = result.data;
       
       if (!apiData) {
+        console.log('❌ ไม่พบข้อมูลสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูล
       }
       
@@ -336,8 +337,11 @@ export class TrueWalletService {
       const transactions = Array.isArray(apiData) ? apiData : [apiData];
       
       if (!transactions || transactions.length === 0) {
+        console.log('❌ ไม่พบรายการธุรกรรมสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูลธุรกรรม
       }
+      
+      console.log('✅ พบรายการธุรกรรม', transactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);
       
       const transfers = transactions.map((item: any, index: number) => {
           // Debug: ดูข้อมูล transaction แต่ละรายการ
@@ -415,15 +419,17 @@ export class TrueWalletService {
           return transfer;
         });
         
-        console.log('All transfers processed:', transfers.length);
+        console.log('✅ ประมวลผล transfers เสร็จสิ้น:', transfers.length, 'รายการ');
+        console.log('📋 ข้อมูล transfers:', transfers);
         
         // Trigger refresh of transaction history
-        console.log('Triggering transaction history refresh...');
+        console.log('🔄 กำลัง refresh transaction history...');
         setTimeout(() => {
           // Send custom event to refresh transaction history
           const event = new CustomEvent('refresh-transaction-history', {
             detail: { 
               source: 'searchTransfersByPhone',
+              phoneNumber: phoneNumber,
               timestamp: new Date().toISOString(),
               transfersFound: transfers.length
             }
@@ -431,6 +437,7 @@ export class TrueWalletService {
           window.dispatchEvent(event);
         }, 1000); // Wait 1 second for database to be updated
         
+        console.log('✅ การค้นหาเบอร์', phoneNumber, 'เสร็จสิ้น พบ', transfers.length, 'รายการ');
         return transfers;
       
     } catch (error) {

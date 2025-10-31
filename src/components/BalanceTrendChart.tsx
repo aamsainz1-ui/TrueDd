@@ -73,21 +73,22 @@ export const BalanceTrendChart: React.FC = () => {
 
   // สร้างช่วงวันที่ 7 วันล่าสุด (26 ต.ค. - 1 พ.ย. 2025)
   const generateLast7Days = (): string[] => {
-    const dates: string[] = [];
+    // ระบุวันที่แบบชัดเจนเพื่อให้แน่ใจว่าแสดงครบ 7 วัน
+    const dates: string[] = [
+      '2025-10-26', // 26 ตุลาคม 2025
+      '2025-10-27', // 27 ตุลาคม 2025
+      '2025-10-28', // 28 ตุลาคม 2025
+      '2025-10-29', // 29 ตุลาคม 2025
+      '2025-10-30', // 30 ตุลาคม 2025
+      '2025-10-31', // 31 ตุลาคม 2025
+      '2025-11-01'  // 1 พฤศจิกายน 2025 (วันปัจจุบัน)
+    ];
     
-    // เริ่มจากวันที่ 26 ตุลาคม 2025 และเพิ่มทีละวันจนถึงวันที่ 1 พฤศจิกายน 2025
-    const startDate = new Date('2025-10-26T00:00:00');
-    
-    for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(startDate.getTime()); // clone โดยใช้ timestamp
-      currentDate.setDate(startDate.getDate() + i);
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
-      dates.push(dateStr);
-    }
-    
-    console.log('=== สร้างวันที่ 7 วัน (26 ต.ค. - 1 พ.ย. 2025) ===');
+    console.log('=== กราฟแสดง 7 วัน (26 ต.ค. - 1 พ.ย. 2025) ===');
     console.log('วันที่ทั้งหมด:', dates);
-    console.log('วันแรก:', dates[0], 'วันสุดท้าย:', dates[6]);
+    console.log('จำนวนวัน:', dates.length);
+    console.log('วันแรก:', dates[0], '| วันสุดท้าย:', dates[6]);
+    console.log('==========================================');
     
     return dates;
   };
@@ -100,18 +101,19 @@ export const BalanceTrendChart: React.FC = () => {
     console.log('จำนวนข้อมูลจาก API:', chartData.length, 'วัน');
     console.log('วันที่ที่มีข้อมูลจาก API:', chartData.map(d => d.date));
     
-    const completeData = last7Days.map(date => {
+    const completeData = last7Days.map((date, index) => {
       // หาข้อมูลจาก API สำหรับวันนี้
       const dataForDate = chartData.find(d => d.date === date);
       
       if (dataForDate) {
-        console.log(`✓ ${date}: มีข้อมูล - ฿${dataForDate.dailyIncome.toLocaleString()}, ${dataForDate.transactionCount} รายการ`);
+        console.log(`[${index + 1}/7] ${date}: มีข้อมูล - ฿${dataForDate.dailyIncome.toLocaleString()}, ${dataForDate.transactionCount} รายการ`);
         return dataForDate;
       } else {
         // ถ้าไม่มีข้อมูล ให้สร้างข้อมูลว่างๆ
         const dateObj = new Date(date + 'T00:00:00');
         const dateLabel = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-        console.log(`✗ ${date}: ไม่มีข้อมูล - ใช้ค่า 0 (Label: ${dateLabel})`);
+        const isToday = date === '2025-11-01';
+        console.log(`[${index + 1}/7] ${date}: ไม่มีข้อมูล - ใช้ค่า 0 (Label: ${dateLabel})${isToday ? ' [วันนี้]' : ''}`);
         return {
           date: date,
           dateLabel: dateLabel,
@@ -121,11 +123,12 @@ export const BalanceTrendChart: React.FC = () => {
       }
     });
     
-    console.log('=== ข้อมูลกราฟสมบูรณ์ (7 วัน) ===');
+    console.log('=== สรุปข้อมูลกราฟสมบูรณ์ (ต้องมี 7 จุด) ===');
+    console.log('จำนวนจุดบนกราฟ:', completeData.length);
     completeData.forEach((d, idx) => {
       console.log(`${idx + 1}. ${d.dateLabel} (${d.date}): ฿${d.dailyIncome.toLocaleString()}, ${d.transactionCount} รายการ`);
     });
-    console.log('=====================================');
+    console.log('================================================');
     
     return completeData;
   }, [chartData]);

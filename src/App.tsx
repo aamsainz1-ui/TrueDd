@@ -7,6 +7,7 @@ import { TransactionHistoryReport } from './components/TransactionHistoryReport'
 import { APIStatus } from './components/APIStatus';
 import { Settings } from './components/Settings';
 import { DailyExportSettings } from './components/DailyExportSettings';
+import { BalanceTrendChart } from './components/BalanceTrendChart';
 import { trueWalletService } from './services/trueWalletService';
 import type { BalanceData, Transaction } from './types';
 
@@ -128,6 +129,13 @@ function App() {
         balance={balance} 
         isLoading={isLoadingBalance} 
         error={balanceError} 
+      />
+
+      {/* เพิ่มกราฟแนวโน้มยอดเงิน */}
+      <BalanceTrendChart 
+        transactions={transactions}
+        currentBalance={balance?.currentBalance}
+        isLoading={isLoadingTransactions}
       />
       
       <div className="grid md:grid-cols-1 gap-6">

@@ -13,32 +13,36 @@ interface APIConfig {
   lineNotifyToken: string;
 }
 
-interface TestStatus {
-  status: 'idle' | 'loading' | 'success' | 'error';
-  message?: string;
+interface SaveMessage {
+  type: 'success' | 'error';
+  message: string;
 }
 
-const DEFAULT_CONFIG: APIConfig = {
-  balanceApiUrl: '/functions/v1/true-wallet-balance',
+const defaultConfig: APIConfig = {
+  balanceApiUrl: '',
   balanceApiToken: '',
-  transactionsApiUrl: '/functions/v1/true-wallet-transactions',
+  transactionsApiUrl: '',
   transactionsApiToken: '',
-  transferSearchApiUrl: '/functions/v1/true-wallet-transfer-search',
+  transferSearchApiUrl: '',
   transferSearchApiToken: '',
   telegramBotToken: '',
   telegramChatId: '',
-  lineNotifyToken: '',
+  lineNotifyToken: ''
 };
 
-const STORAGE_KEY = 'true-wallet-api-config';
+const defaultBalances = {
+  balanceApiUrl: 'https://example.com/api/balance',
+  balanceApiToken: 'your-api-token-here',
+  transactionsApiUrl: 'https://example.com/api/transactions', 
+  transactionsApiToken: 'your-api-token-here',
+  transferSearchApiUrl: 'https://example.com/api/search',
+  transferSearchApiToken: 'your-api-token-here'
+};
 
-export function Settings() {
-  const [config, setConfig] = useState<APIConfig>(DEFAULT_CONFIG);
-  const [balanceStatus, setBalanceStatus] = useState<TestStatus>({ status: 'idle' });
-  const [transactionsStatus, setTransactionsStatus] = useState<TestStatus>({ status: 'idle' });
-  const [transferStatus, setTransferStatus] = useState<TestStatus>({ status: 'idle' });
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+export const Settings: React.FC = () => {
+  const [config, setConfig] = useState<APIConfig>(defaultConfig);
+  const [saveMessage, setSaveMessage] = useState<SaveMessage | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -46,113 +50,86 @@ export function Settings() {
 
   const loadConfig = () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem('walletConfig');
       if (saved) {
         const parsed = JSON.parse(saved);
-        setConfig(parsed);
-        showSaveMessage('success', 'โหลดการตั้งค่าสำเร็จ');
+        setConfig({ ...defaultConfig, ...parsed });
       }
     } catch (error) {
-      console.error('Failed to load config:', error);
-      showSaveMessage('error', 'ไม่สามารถโหลดการตั้งค่าได้');
+      console.error('Error loading config:', error);
     }
   };
 
-  const saveAPISettings = () => {
+  const saveConfig = () => {
+    setIsLoading(true);
     try {
-      setIsSaving(true);
-      // Save only API-related settings (exclude Telegram/LINE)
-      const apiSettings = {
-        balanceApiUrl: config.balanceApiUrl,
-        balanceApiToken: config.balanceApiToken,
-        transactionsApiUrl: config.transactionsApiUrl,
-        transactionsApiToken: config.transactionsApiToken,
-        transferSearchApiUrl: config.transferSearchApiUrl,
-        transferSearchApiToken: config.transferSearchApiToken,
-        telegramBotToken: config.telegramBotToken,
-        telegramChatId: config.telegramChatId,
-        lineNotifyToken: config.lineNotifyToken
-      };
+      localStorage.setItem('walletConfig', JSON.stringify(config));
+      setSaveMessage({ type: 'success', message: 'บันทึกการตั้งค่าสำเร็จ' });
       
-      const currentConfig = localStorage.getItem(STORAGE_KEY);
-      if (currentConfig) {
-        const existingConfig = JSON.parse(currentConfig);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existingConfig, ...apiSettings }));
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_CONFIG, ...apiSettings }));
-      }
-      
-      // Update the service to use new config
-      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: { ...config, ...apiSettings } }));
-      
-      showSaveMessage('success', 'บันทึกการตั้งค่า API สำเร็จ');
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('configUpdated', { detail: config }));
     } catch (error) {
-      console.error('Failed to save API settings:', error);
-      showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่า API ได้');
+      setSaveMessage({ type: 'error', message: 'เกิดข้อผิดพลาดในการบันทึก' });
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
-  const saveNotificationSettings = () => {
-    try {
-      setIsSaving(true);
-      // Save notification settings (Telegram/LINE only)
-      const notificationSettings = {
-        telegramBotToken: config.telegramBotToken,
-        telegramChatId: config.telegramChatId,
-        lineNotifyToken: config.lineNotifyToken
-      };
-      
-      const currentConfig = localStorage.getItem(STORAGE_KEY);
-      if (currentConfig) {
-        const existingConfig = JSON.parse(currentConfig);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existingConfig, ...notificationSettings }));
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_CONFIG, ...notificationSettings }));
-      }
-      
-      // Update the service to use new config
-      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: { ...config, ...notificationSettings } }));
-      
-      showSaveMessage('success', 'บันทึกการตั้งค่าแจ้งเตือนสำเร็จ');
-    } catch (error) {
-      console.error('Failed to save notification settings:', error);
-      showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่าแจ้งเตือนได้');
-    } finally {
-      setIsSaving(false);
-    }
+  const handleInputChange = (field: keyof APIConfig, value: string) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const resetToDefault = () => {
+    setConfig(defaultBalances as APIConfig);
+  };
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(config, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'wallet-config.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const testTelegramConnection = async () => {
-    if (!config.telegramBotToken || !config.telegramChatId) {
-      showSaveMessage('error', 'กรุณากรอก Bot Token และ Chat ID ก่อนทดสอบ');
-      return;
-    }
-
     try {
-      // Test Telegram API connection by getting bot info
-      const response = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getMe`);
-      const data = await response.json();
+      setSaveMessage({ type: 'success', message: 'กำลังทดสอบการเชื่อมต่อ...' });
       
-      if (data.ok) {
-        showSaveMessage('success', `เชื่อมต่อ Telegram Bot สำเร็จ! Bot: ${data.result.first_name}`);
+      if (!config.telegramBotToken) {
+        setSaveMessage({ type: 'error', message: 'กรุณากรอก Telegram Bot Token' });
+        return;
+      }
+
+      const response = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getMe`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSaveMessage({ 
+          type: 'success', 
+          message: `เชื่อมต่อสำเร็จ! Bot: ${result.result.first_name}` 
+        });
       } else {
-        showSaveMessage('error', `ไม่สามารถเชื่อมต่อได้: ${data.description}`);
+        setSaveMessage({ type: 'error', message: 'การเชื่อมต่อล้มเหลว - ตรวจสอบ Token' });
       }
     } catch (error) {
-      showSaveMessage('error', 'ไม่สามารถเชื่อมต่อ Telegram API ได้');
+      setSaveMessage({ type: 'error', message: 'เกิดข้อผิดพลาดในการทดสอบ' });
     }
   };
 
   const testLineConnection = async () => {
-    if (!config.lineNotifyToken) {
-      showSaveMessage('error', 'กรุณากรอก Access Token ก่อนทดสอบ');
-      return;
-    }
-
     try {
-      // Test LINE Notify connection by sending a test message
+      setSaveMessage({ type: 'success', message: 'กำลังทดสอบการเชื่อมต่อ LINE...' });
+      
+      if (!config.lineNotifyToken) {
+        setSaveMessage({ type: 'error', message: 'กรุณากรอก LINE Notify Token' });
+        return;
+      }
+
       const response = await fetch('https://notify-api.line.me/api/notify', {
         method: 'POST',
         headers: {
@@ -163,141 +140,16 @@ export function Settings() {
       });
       
       if (response.ok) {
-        showSaveMessage('success', 'เชื่อมต่อ LINE Notify สำเร็จ! ตรวจสอบ LINE ของคุณ');
-      } else {
-        const errorData = await response.text();
-        showSaveMessage('error', `ไม่สามารถเชื่อมต่อได้: ${errorData}`);
-      }
-    } catch (error) {
-      showSaveMessage('error', 'ไม่สามารถเชื่อมต่อ LINE Notify API ได้');
-    }
-  };
-
-  const saveConfig = () => {
-    try {
-      setIsSaving(true);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-      
-      // Update the service to use new config
-      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: config }));
-      
-      showSaveMessage('success', 'บันทึกการตั้งค่าทั้งหมดสำเร็จ');
-    } catch (error) {
-      console.error('Failed to save config:', error);
-      showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่าได้');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const showSaveMessage = (type: 'success' | 'error', text: string) => {
-    setSaveMessage({ type, text });
-    setTimeout(() => setSaveMessage(null), 3000);
-  };
-
-  const testConnection = async (
-    apiType: 'balance' | 'transactions' | 'transfer',
-    url: string,
-    token: string,
-    setStatus: (status: TestStatus) => void
-  ) => {
-    setStatus({ status: 'loading', message: 'กำลังทดสอบ...' });
-
-    try {
-      // Get Supabase config from service
-      const supabaseUrl = 'https://kmloseczqatswwczqajs.supabase.co';
-      const apiToken = token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I';
-
-      const fullUrl = url.startsWith('http') ? url : `${supabaseUrl}${url}`;
-
-      let response;
-      if (apiType === 'transfer') {
-        // Transfer search requires POST with body
-        response = await fetch(fullUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ phoneNumber: '0000000000' }) // Test with dummy phone
+        setSaveMessage({ 
+          type: 'success', 
+          message: 'เชื่อมต่อสำเร็จ! ข้อความทดสอบถูกส่งไป LINE แล้ว' 
         });
       } else {
-        response = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-
-      if (response.ok) {
-        setStatus({ 
-          status: 'success', 
-          message: `เชื่อมต่อสำเร็จ (${response.status})` 
-        });
-      } else {
-        setStatus({ 
-          status: 'error', 
-          message: `เชื่อมต่อล้มเหลว (${response.status})` 
-        });
+        setSaveMessage({ type: 'error', message: 'การเชื่อมต่อล้มเหลว - ตรวจสอบ Token' });
       }
     } catch (error) {
-      setStatus({ 
-        status: 'error', 
-        message: error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อได้' 
-      });
+      setSaveMessage({ type: 'error', message: 'เกิดข้อผิดพลาดในการทดสอบ' });
     }
-  };
-
-  const resetToDefault = () => {
-    setConfig(DEFAULT_CONFIG);
-    showSaveMessage('success', 'รีเซ็ตเป็นค่าเริ่มต้นแล้ว');
-  };
-
-  const renderTestButton = (
-    label: string,
-    apiType: 'balance' | 'transactions' | 'transfer',
-    url: string,
-    token: string,
-    status: TestStatus,
-    setStatus: (status: TestStatus) => void
-  ) => {
-    const isLoading = status.status === 'loading';
-    const statusColor = 
-      status.status === 'success' ? 'text-green-600' :
-      status.status === 'error' ? 'text-red-600' :
-      'text-muted-foreground';
-
-    return (
-      <div className="space-y-2">
-        <button
-          onClick={() => testConnection(apiType, url, token, setStatus)}
-          disabled={isLoading || !url}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              กำลังทดสอบ...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              ทดสอบการเชื่อมต่อ
-            </>
-          )}
-        </button>
-        
-        {status.message && (
-          <div className={`flex items-center gap-2 text-sm ${statusColor}`}>
-            {status.status === 'success' && <Check className="w-4 h-4" />}
-            {status.status === 'error' && <X className="w-4 h-4" />}
-            <span>{status.message}</span>
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -321,301 +173,177 @@ export function Settings() {
           }`}>
             <div className="flex items-center gap-2">
               {saveMessage.type === 'success' ? (
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <Check className="w-4 h-4" />
               ) : (
-                <X className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <X className="w-4 h-4" />
               )}
-              <span className="font-medium text-sm sm:text-base">{saveMessage.text}</span>
+              <span className="text-sm sm:text-base font-medium">{saveMessage.message}</span>
             </div>
           </div>
         )}
 
-        <div className="space-y-4 sm:space-y-6">
-          {/* Balance API */}
-          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">Balance API</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลยอดเงินคงเหลือ</span>
-            </div>
-            
-            <div className="space-y-2.5 sm:space-y-3">
+        {/* API Settings */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า API</h3>
+          <div className="grid gap-4 sm:gap-6">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API URL
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Balance API URL
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   value={config.balanceApiUrl}
-                  onChange={(e) => setConfig({ ...config, balanceApiUrl: e.target.value })}
-                  placeholder="/functions/v1/true-wallet-balance"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
+                  onChange={(e) => handleInputChange('balanceApiUrl', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="https://api.example.com/balance"
                 />
               </div>
               
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API Token
-                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Balance API Token
                 </label>
                 <input
                   type="password"
                   value={config.balanceApiToken}
-                  onChange={(e) => setConfig({ ...config, balanceApiToken: e.target.value })}
-                  placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
+                  onChange={(e) => handleInputChange('balanceApiToken', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="your-api-token"
                 />
               </div>
             </div>
-            
-            <div className="mt-4">
-              {renderTestButton(
-                'Balance API',
-                'balance',
-                config.balanceApiUrl,
-                config.balanceApiToken,
-                balanceStatus,
-                setBalanceStatus
-              )}
-            </div>
-          </div>
 
-          {/* Transactions API */}
-          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">Transactions API</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลรายการธุรกรรมล่าสุด</span>
-            </div>
-            
-            <div className="space-y-2.5 sm:space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API URL
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Transactions API URL
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   value={config.transactionsApiUrl}
-                  onChange={(e) => setConfig({ ...config, transactionsApiUrl: e.target.value })}
-                  placeholder="/functions/v1/true-wallet-transactions"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
+                  onChange={(e) => handleInputChange('transactionsApiUrl', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="https://api.example.com/transactions"
                 />
               </div>
               
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API Token
-                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Transactions API Token
                 </label>
                 <input
                   type="password"
                   value={config.transactionsApiToken}
-                  onChange={(e) => setConfig({ ...config, transactionsApiToken: e.target.value })}
-                  placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
+                  onChange={(e) => handleInputChange('transactionsApiToken', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="your-api-token"
                 />
               </div>
             </div>
-            
-            <div className="mt-4">
-              {renderTestButton(
-                'Transactions API',
-                'transactions',
-                config.transactionsApiUrl,
-                config.transactionsApiToken,
-                transactionsStatus,
-                setTransactionsStatus
-              )}
-            </div>
-          </div>
 
-          {/* Transfer Search API */}
-          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">Transfer Search API</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับค้นหาประวัติการโอนเงิน</span>
-            </div>
-            
-            <div className="space-y-2.5 sm:space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API URL
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Transfer Search API URL
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   value={config.transferSearchApiUrl}
-                  onChange={(e) => setConfig({ ...config, transferSearchApiUrl: e.target.value })}
-                  placeholder="/functions/v1/true-wallet-transfer-search"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
+                  onChange={(e) => handleInputChange('transferSearchApiUrl', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="https://api.example.com/search"
                 />
               </div>
               
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  API Token
-                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                  Transfer Search API Token
                 </label>
                 <input
                   type="password"
                   value={config.transferSearchApiToken}
-                  onChange={(e) => setConfig({ ...config, transferSearchApiToken: e.target.value })}
-                  placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
+                  onChange={(e) => handleInputChange('transferSearchApiToken', e.target.value)}
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="your-api-token"
                 />
               </div>
             </div>
-            
-            <div className="mt-4">
-              {renderTestButton(
-                'Transfer Search API',
-                'transfer',
-                config.transferSearchApiUrl,
-                config.transferSearchApiToken,
-                transferStatus,
-                setTransferStatus
-              )}
-            </div>
+          </div>
 
-            {/* Save API Settings Button */}
-            <div className="mt-4 pt-3 border-t border-primary/20">
-              <div className="flex flex-col sm:flex-row gap-2">
+          <div className="mt-6">
+            <button
+              onClick={saveConfig}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
+            >
+              <Save className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base">บันทึกการตั้งค่า API</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Telegram Settings */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า Telegram</h3>
+          <div className="grid gap-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                Telegram Bot Token
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={config.telegramBotToken}
+                  onChange={(e) => handleInputChange('telegramBotToken', e.target.value)}
+                  className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                />
                 <button
-                  onClick={saveAPISettings}
-                  disabled={isSaving}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
+                  onClick={testTelegramConnection}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-h-[44px]"
                 >
-                  <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base">บันทึกตั้งค่า API</span>
+                  ทดสอบ
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Telegram Bot Settings */}
-          <div className="border-2 border-blue-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">📱 Telegram Bot Settings</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งไฟล์ CSV ผ่าน Telegram Bot</span>
-            </div>
             
-            <div className="space-y-2.5 sm:space-y-3">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  Bot Token
-                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Bot Token จาก @BotFather</span>
-                </label>
-                <input
-                  type="password"
-                  value={config.telegramBotToken}
-                  onChange={(e) => setConfig({ ...config, telegramBotToken: e.target.value })}
-                  placeholder="1234567890:AAEfr... (เริ่มต้นด้วยตัวเลข)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  Chat ID
-                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">📧 รหัส Chat หรือ Group</span>
-                </label>
-                <input
-                  type="text"
-                  value={config.telegramChatId}
-                  onChange={(e) => setConfig({ ...config, telegramChatId: e.target.value })}
-                  placeholder="-1001234567890 (Group) หรือ 123456789 (User)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
-                />
-              </div>
-            </div>
-
-            {/* Test Telegram Button */}
-            <div className="mt-4 pt-3 border-t border-blue-100">
-              <button
-                onClick={testTelegramConnection}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium min-h-[44px] touch-manipulation"
-              >
-                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <span className="text-sm sm:text-base">ทดสอบการเชื่อมต่อ</span>
-              </button>
-            </div>
-
-          {/* Telegram Bot Settings */}
-          <div className="border-2 border-blue-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">📱 Telegram Bot Settings</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งไฟล์ CSV ผ่าน Telegram Bot</span>
-            </div>
-            
-            <div className="space-y-2.5 sm:space-y-3">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  Bot Token
-                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Bot Token จาก @BotFather</span>
-                </label>
-                <input
-                  type="password"
-                  value={config.telegramBotToken}
-                  onChange={(e) => setConfig({ ...config, telegramBotToken: e.target.value })}
-                  placeholder="1234567890:AAEfr... (เริ่มต้นด้วยตัวเลข)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  Chat ID
-                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">📧 รหัส Chat หรือ Group</span>
-                </label>
-                <input
-                  type="text"
-                  value={config.telegramChatId}
-                  onChange={(e) => setConfig({ ...config, telegramChatId: e.target.value })}
-                  placeholder="-1001234567890 (Group) หรือ 123456789 (User)"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
-                />
-              </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                Telegram Chat ID
+              </label>
+              <input
+                type="text"
+                value={config.telegramChatId}
+                onChange={(e) => handleInputChange('telegramChatId', e.target.value)}
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                placeholder="123456789"
+              />
             </div>
           </div>
+        </div>
 
-          {/* LINE Notify Settings */}
-          <div className="border-2 border-green-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-green-50 to-transparent">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-sm sm:text-base font-bold text-foreground">💬 LINE Notify Settings</span>
-              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งแจ้งเตือนผ่าน LINE Notify</span>
-            </div>
-            
-            <div className="space-y-2.5 sm:space-y-3">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
-                  Access Token
-                  <span className="block sm:inline text-xs text-green-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Access Token จาก LINE Notify</span>
-                </label>
+        {/* LINE Settings */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า LINE Notify</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
+                LINE Notify Access Token
+              </label>
+              <div className="flex gap-2">
                 <input
                   type="password"
                   value={config.lineNotifyToken}
-                  onChange={(e) => setConfig({ ...config, lineNotifyToken: e.target.value })}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-400 bg-green-50 touch-manipulation"
+                  onChange={(e) => handleInputChange('lineNotifyToken', e.target.value)}
+                  className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="your-line-notify-token"
                 />
-              </div>
-            </div>
-
-            {/* Save Notification Settings Button */}
-            <div className="mt-4 pt-3 border-t border-green-100">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={saveNotificationSettings}
-                  disabled={isSaving}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
-                >
-                  <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base">บันทึกการตั้งค่าแจ้งเตือน</span>
-                </button>
-                
                 <button
                   onClick={testLineConnection}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium min-h-[44px] touch-manipulation"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-h-[44px]"
                 >
-                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-sm sm:text-base">ทดสอบ</span>
+                  ทดสอบ
                 </button>
               </div>
             </div>
@@ -623,18 +351,9 @@ export function Settings() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
-            onClick={saveConfig}
-            disabled={isSaving}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
-          >
-            <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-            <span className="text-sm sm:text-base">บันทึกทั้งหมด</span>
-          </button>
-
-          <button
-            onClick={loadConfig}
+            onClick={handleExport}
             className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
           >
             <Download className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
@@ -656,7 +375,7 @@ export function Settings() {
           <ul className="text-xs sm:text-sm text-blue-800 space-y-1 sm:space-y-1.5">
             <li className="leading-relaxed">• URL สามารถเป็น relative path เช่น /functions/v1/api-name หรือ absolute URL</li>
             <li className="leading-relaxed">• กดปุ่ม "ทดสอบการเชื่อมต่อ" เพื่อตรวจสอบว่า API ทำงานได้หรือไม่</li>
-            <li className="leading-relaxed">• บันทึกการตั้งค่า: API และ แจ้งเตือน แยกกัน หรือใช้ปุ่ม "บันทึกทั้งหมด"</li>
+            <li className="leading-relaxed">• บันทึกการตั้งค่าจะถูกบันทึกไว้ใน Browser localStorage</li>
             <li className="leading-relaxed">• การตั้งค่าจะถูกบันทึกไว้ใน Browser localStorage</li>
           </ul>
           
@@ -689,4 +408,4 @@ export function Settings() {
       </div>
     </div>
   );
-}
+};

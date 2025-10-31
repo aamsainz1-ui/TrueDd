@@ -294,7 +294,7 @@ export class TrueWalletService {
       });
 
       if (!response.ok) {
-        console.error('❌ Transfer Search API Error:', {
+        console.error('❌ Transactions API Error:', {
           status: response.status,
           statusText: response.statusText,
           url: url,
@@ -311,7 +311,7 @@ export class TrueWalletService {
       }
 
       const result = await response.json();
-      console.log('📋 Search Transfers API Response:', result);
+      console.log('📋 Transactions API Response:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
       // ตรวจสอบ status
@@ -343,11 +343,6 @@ export class TrueWalletService {
       if (relevantTransactions.length === 0) {
         console.log(`🔍 ไม่พบธุรกรรมที่เกี่ยวข้องกับเบอร์ ${phoneNumber}`);
         return [];
-      }
-      
-      if (!transactions || transactions.length === 0) {
-        console.log('❌ ไม่พบรายการธุรกรรมสำหรับเบอร์:', phoneNumber);
-        return []; // ไม่มีข้อมูลธุรกรรม
       }
       
       console.log('✅ พบรายการธุรกรรม', relevantTransactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);

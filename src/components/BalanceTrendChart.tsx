@@ -1,11 +1,4 @@
-import React, { useMemo } from 'react';
-import type { Transaction } from '../types';
-
-interface BalanceTrendChartProps {
-  transactions: Transaction[];
-  currentBalance?: number;
-  isLoading?: boolean;
-}
+import React, { useMemo, useEffect, useState } from 'react';
 
 interface DailyIncomeData {
   date: string;
@@ -14,58 +7,50 @@ interface DailyIncomeData {
   transactionCount: number;
 }
 
-export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({
-  transactions,
-  currentBalance,
-  isLoading = false
-}) => {
-  const chartData = useMemo(() => {
-    if (!transactions.length) {
-      return [];
-    }
+export const BalanceTrendChart: React.FC = () => {
+  const [chartData, setChartData] = useState<DailyIncomeData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // จัดกลุ่มข้อมูลตามวัน
-    const dailyData = new Map<string, { income: number; transactionCount: number; transactions: Transaction[] }>();
-
-    // เพิ่มข้อมูลรายการธุรกรรม
-    transactions.forEach(transaction => {
-      if (transaction.type === 'income') {
-        const date = new Date(transaction.datetime).toISOString().split('T')[0];
-        const existing = dailyData.get(date) || { income: 0, transactionCount: 0, transactions: [] };
-        
-        existing.income += transaction.amount;
-        existing.transactionCount += 1;
-        existing.transactions.push(transaction);
-        dailyData.set(date, existing);
-      }
-    });
-
-    const dailyIncomes: DailyIncomeData[] = [];
-    const today = new Date();
+  // ดึงข้อมูลสรุปยอดรับเงินรายวัน
+  const fetchDailyIncomeData = async () => {
+    setIsLoading(true);
+    setError(null);
     
-    // สร้างข้อมูลย้อนหลัง 7 วัน
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+    try {
+      const response = await fetch(
+        'https://kmloseczqatswwczqajs.supabase.co/functions/v1/daily-income-summary',
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      const result = await response.json();
       
-      const dayData = dailyData.get(dateStr);
-      const dailyIncome = dayData?.income || 0;
-      const transactionCount = dayData?.transactionCount || 0;
-
-      dailyIncomes.push({
-        date: dateStr,
-        dateLabel: date.toLocaleDateString('th-TH', { 
-          month: 'short', 
-          day: 'numeric'
-        }),
-        dailyIncome,
-        transactionCount
-      });
+      if (result.success) {
+        setChartData(result.data);
+      } else {
+        throw new Error(result.error?.message || 'Failed to fetch data');
+      }
+    } catch (error) {
+      console.error('Error fetching daily income summary:', error);
+      setError('ไม่สามารถโหลดข้อมูลได้');
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return dailyIncomes;
-  }, [transactions]);
+  useEffect(() => {
+    fetchDailyIncomeData();
+  }, []);
+
+  // เรียงข้อมูลใหม่ให้เป็น 7 วันล่าสุด
+  const sortedChartData = useMemo(() => {
+    return chartData.slice(-7);
+  }, [chartData]);
 
   if (isLoading) {
     return (
@@ -78,13 +63,13 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({
     );
   }
 
-  if (!chartData.length) {
+  if (error || !sortedChartData.length) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">แนวโน้มยอดรับเงินรายวัน (7 วันล่าสุด)</h3>
         <div className="h-64 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
-            <p className="text-sm">ไม่มีข้อมูลรายรับเพียงพอสำหรับสร้างกราฟ</p>
+            <p className="text-sm">{error || 'ไม่มีข้อมูลรายรับเพียงพอสำหรับสร้างกราฟ'}</p>
             <p className="text-xs mt-1">กรุณาใช้งานแอปเพื่อสร้างประวัติการรับเงิน</p>
           </div>
         </div>
@@ -98,22 +83,22 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({
     const height = 250;
     const padding = 40;
     
-    const dailyIncomes = chartData.map(d => d.dailyIncome);
+    const dailyIncomes = sortedChartData.map(d => d.dailyIncome);
     const minIncome = Math.min(...dailyIncomes, 0);
     const maxIncome = Math.max(...dailyIncomes, 1000); // อย่างน้อย 1000
     
-    const xStep = (width - 2 * padding) / (chartData.length - 1);
+    const xStep = (width - 2 * padding) / (sortedChartData.length - 1);
     const yScale = (height - 2 * padding) / (maxIncome - minIncome || 1);
     
     // สร้างจุดของกราฟ
-    const points = chartData.map((data, index) => {
+    const points = sortedChartData.map((data, index) => {
       const x = padding + index * xStep;
       const y = height - padding - (data.dailyIncome - minIncome) * yScale;
       return `${x},${y}`;
     }).join(' ');
     
     // สร้างจุด dots
-    const dots = chartData.map((data, index) => {
+    const dots = sortedChartData.map((data, index) => {
       const x = padding + index * xStep;
       const y = height - padding - (data.dailyIncome - minIncome) * yScale;
       return (
@@ -131,7 +116,7 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({
     });
     
     // สร้างแกน x
-    const xLabels = chartData.map((data, index) => (
+    const xLabels = sortedChartData.map((data, index) => (
       <text
         key={index}
         x={padding + index * xStep}
@@ -226,7 +211,7 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({
 
       {/* สรุปข้อมูลรายวัน */}
       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-        {chartData.slice(-3).map((data, index) => (
+        {sortedChartData.slice(-3).map((data, index) => (
           <div key={index} className="bg-green-50 rounded-lg p-3">
             <div className="text-xs text-muted-foreground">{data.dateLabel}</div>
             <div className="text-sm font-semibold text-green-600">

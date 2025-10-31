@@ -131,12 +131,8 @@ function App() {
         error={balanceError} 
       />
 
-      {/* เพิ่มกราฟแนวโน้มยอดเงิน */}
-      <BalanceTrendChart 
-        transactions={transactions}
-        currentBalance={balance?.currentBalance}
-        isLoading={isLoadingTransactions}
-      />
+      {/* เพิ่มกราฟแนวโน้มยอดรับเงินรายวัน */}
+      <BalanceTrendChart />
       
       <div className="grid md:grid-cols-1 gap-6">
         <div>

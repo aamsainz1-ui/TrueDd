@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Trash2, AlertTriangle, Eye, Search } from 'lucide-react';
 import { clearHistoryService } from '../services/clearHistoryService';
+import { Toast } from './Toast';
 
 interface ClearHistoryButtonProps {
   searchTerm?: string;
@@ -15,6 +16,7 @@ export function ClearHistoryButton({ searchTerm, onClear, className = '' }: Clea
   const [totalCount, setTotalCount] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   const handlePreview = async () => {
     try {
@@ -27,7 +29,7 @@ export function ClearHistoryButton({ searchTerm, onClear, className = '' }: Clea
       setShowPreview(true);
     } catch (error) {
       console.error('Failed to load preview:', error);
-      alert('เกิดข้อผิดพลาดในการโหลดตัวอย่าง: ' + error.message);
+      setToast({ message: 'เกิดข้อผิดพลาดในการโหลดตัวอย่าง: ' + error.message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +43,7 @@ export function ClearHistoryButton({ searchTerm, onClear, className = '' }: Clea
       const result = await clearHistoryService.clearTransferSearchHistory(searchTerm);
       
       if (result.success) {
-        alert(`ลบรายการสำเร็จแล้ว! ลบไป ${result.deletedCount} รายการ`);
+        setToast({ message: `ลบรายการสำเร็จแล้ว! ลบไป ${result.deletedCount} รายการ`, type: 'success' });
         setIsOpen(false);
         setShowPreview(false);
         setConfirmClear(false);
@@ -60,11 +62,11 @@ export function ClearHistoryButton({ searchTerm, onClear, className = '' }: Clea
           onClear();
         }
       } else {
-        alert('เกิดข้อผิดพลาดในการลบรายการ: ' + result.message);
+        setToast({ message: 'เกิดข้อผิดพลาดในการลบรายการ: ' + result.message, type: 'error' });
       }
     } catch (error) {
       console.error('Failed to clear history:', error);
-      alert('เกิดข้อผิดพลาดในการลบรายการ: ' + error.message);
+      setToast({ message: 'เกิดข้อผิดพลาดในการลบรายการ: ' + error.message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +74,14 @@ export function ClearHistoryButton({ searchTerm, onClear, className = '' }: Clea
 
   return (
     <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      
       <button
         onClick={() => setIsOpen(true)}
         className={`flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs sm:text-sm whitespace-nowrap min-h-[36px] sm:min-h-[40px] touch-manipulation ${className}`}

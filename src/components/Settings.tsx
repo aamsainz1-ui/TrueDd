@@ -7,11 +7,8 @@ interface APIConfig {
   supabaseAnonKey: string;
   
   // True Wallet API Configuration
-  balanceApiUrl: string;
   balanceApiToken: string;
-  transactionsApiUrl: string;
   transactionsApiToken: string;
-  transferSearchApiUrl: string;
   transferSearchApiToken: string;
   
   // Notification Services
@@ -28,11 +25,8 @@ interface SaveMessage {
 const defaultConfig: APIConfig = {
   supabaseUrl: '',
   supabaseAnonKey: '',
-  balanceApiUrl: '',
   balanceApiToken: '',
-  transactionsApiUrl: '',
   transactionsApiToken: '',
-  transferSearchApiUrl: '',
   transferSearchApiToken: '',
   telegramBotToken: '',
   telegramChatId: '',
@@ -45,12 +39,15 @@ const defaultSupabase = {
 };
 
 const defaultTrueWallet = {
-  balanceApiUrl: 'https://apis.truemoneyservices.com/account/v1/balance',
   balanceApiToken: '',
-  transactionsApiUrl: 'https://api.truemoneyservices.com/transaction/v1/send-money', 
   transactionsApiToken: '',
-  transferSearchApiUrl: 'https://api.truemoneyservices.com/transaction/v1/history',
   transferSearchApiToken: ''
+};
+
+const trueWalletUrls = {
+  balance: 'https://apis.truemoneyservices.com/account/v1/balance',
+  transactions: 'https://api.truemoneyservices.com/transaction/v1/send-money', 
+  transferSearch: 'https://api.truemoneyservices.com/transaction/v1/history'
 };
 
 export const Settings: React.FC = () => {
@@ -225,15 +222,16 @@ export const Settings: React.FC = () => {
       setSaveMessage({ type: 'success', message: `กำลังทดสอบ${apiType} API...` });
       
       const configs = {
-        balance: { url: config.balanceApiUrl, token: config.balanceApiToken, name: 'Balance' },
-        transactions: { url: config.transactionsApiUrl, token: config.transactionsApiToken, name: 'Transactions' },
-        transferSearch: { url: config.transferSearchApiUrl, token: config.transferSearchApiToken, name: 'Transfer Search' }
+        balance: { token: config.balanceApiToken, name: 'Balance' },
+        transactions: { token: config.transactionsApiToken, name: 'Transactions' },
+        transferSearch: { token: config.transferSearchApiToken, name: 'Transfer Search' }
       };
       
       const currentConfig = configs[apiType];
+      const url = trueWalletUrls[apiType];
       
-      if (!currentConfig.url || !currentConfig.token) {
-        setSaveMessage({ type: 'error', message: `กรุณากรอก${currentConfig.name} API URL และ Token` });
+      if (!currentConfig.token) {
+        setSaveMessage({ type: 'error', message: `กรุณากรอก${currentConfig.name} API Token` });
         return;
       }
 
@@ -247,7 +245,7 @@ export const Settings: React.FC = () => {
         testData = { test: true, query: 'test_search' };
       }
 
-      const response = await fetch(currentConfig.url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${currentConfig.token}`,
@@ -259,14 +257,14 @@ export const Settings: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         let successMessage = `✅ ${currentConfig.name} API เชื่อมต่อสำเร็จ!\n`;
-        successMessage += `• URL: ${currentConfig.url}\n`;
+        successMessage += `• URL: ${url}\n`;
         successMessage += `• Response Status: ${response.status}\n`;
         successMessage += `• API: ตอบสนองได้`;
         
         setSaveMessage({ type: 'success', message: successMessage });
       } else {
         let errorMessage = `❌ ${currentConfig.name} API เชื่อมต่อล้มเหลว!\n`;
-        errorMessage += `• URL: ${currentConfig.url}\n`;
+        errorMessage += `• URL: ${url}\n`;
         errorMessage += `• Status: ${response.status} ${response.statusText}\n`;
         
         if (response.status === 401) {
@@ -371,22 +369,22 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* API Settings */}
+        {/* True Wallet API Settings */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า True Wallet API</h3>
           <div className="grid gap-4 sm:gap-6">
             <div className="space-y-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Balance API URL
+                  Balance API Token
                 </label>
                 <div className="flex gap-2">
                   <input
-                    type="url"
-                    value={config.balanceApiUrl}
-                    onChange={(e) => handleInputChange('balanceApiUrl', e.target.value)}
+                    type="password"
+                    value={config.balanceApiToken}
+                    onChange={(e) => handleInputChange('balanceApiToken', e.target.value)}
                     className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="https://apis.truemoneyservices.com/account/v1/balance"
+                    placeholder="your-balance-api-token"
                   />
                   <button
                     onClick={() => testTrueWalletAPIs('balance')}
@@ -396,34 +394,24 @@ export const Settings: React.FC = () => {
                     <span>ทดสอบ</span>
                   </button>
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Balance API Token
-                </label>
-                <input
-                  type="password"
-                  value={config.balanceApiToken}
-                  onChange={(e) => handleInputChange('balanceApiToken', e.target.value)}
-                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                  placeholder="your-balance-api-token"
-                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: {trueWalletUrls.balance}
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Transactions API URL
+                  Transactions API Token
                 </label>
                 <div className="flex gap-2">
                   <input
-                    type="url"
-                    value={config.transactionsApiUrl}
-                    onChange={(e) => handleInputChange('transactionsApiUrl', e.target.value)}
+                    type="password"
+                    value={config.transactionsApiToken}
+                    onChange={(e) => handleInputChange('transactionsApiToken', e.target.value)}
                     className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="https://api.truemoneyservices.com/transaction/v1/send-money"
+                    placeholder="your-transactions-api-token"
                   />
                   <button
                     onClick={() => testTrueWalletAPIs('transactions')}
@@ -433,34 +421,24 @@ export const Settings: React.FC = () => {
                     <span>ทดสอบ</span>
                   </button>
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Transactions API Token
-                </label>
-                <input
-                  type="password"
-                  value={config.transactionsApiToken}
-                  onChange={(e) => handleInputChange('transactionsApiToken', e.target.value)}
-                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                  placeholder="your-transactions-api-token"
-                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: {trueWalletUrls.transactions}
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Transfer Search API URL
+                  Transfer Search API Token
                 </label>
                 <div className="flex gap-2">
                   <input
-                    type="url"
-                    value={config.transferSearchApiUrl}
-                    onChange={(e) => handleInputChange('transferSearchApiUrl', e.target.value)}
+                    type="password"
+                    value={config.transferSearchApiToken}
+                    onChange={(e) => handleInputChange('transferSearchApiToken', e.target.value)}
                     className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="https://api.truemoneyservices.com/transaction/v1/history"
+                    placeholder="your-transfer-search-api-token"
                   />
                   <button
                     onClick={() => testTrueWalletAPIs('transferSearch')}
@@ -470,19 +448,9 @@ export const Settings: React.FC = () => {
                     <span>ทดสอบ</span>
                   </button>
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">
-                  Transfer Search API Token
-                </label>
-                <input
-                  type="password"
-                  value={config.transferSearchApiToken}
-                  onChange={(e) => handleInputChange('transferSearchApiToken', e.target.value)}
-                  className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                  placeholder="your-transfer-search-api-token"
-                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: {trueWalletUrls.transferSearch}
+                </p>
               </div>
             </div>
           </div>
@@ -499,17 +467,16 @@ export const Settings: React.FC = () => {
           </div>
 
           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-xs font-semibold text-blue-900 mb-2">📱 วิธีหา True Wallet API:</h4>
+            <h4 className="text-xs font-semibold text-blue-900 mb-2">📱 วิธีหา True Wallet API Token:</h4>
             <ul className="text-xs text-blue-800 space-y-1">
               <li>1. ลงทะเบียนกับ TrueMoney Services</li>
               <li>2. ขอ API Access จาก TrueMoney Developer Portal</li>
-              <li>3. รับ Balance API, Transactions API และ Transfer Search API URLs</li>
-              <li>4. รับ API Tokens สำหรับแต่ละ API</li>
-              <li>5. ใส่ URLs และ Tokens ในการตั้งค่าด้านบน</li>
+              <li>3. รับ API Tokens สำหรับ Balance, Transactions และ Transfer Search</li>
+              <li>4. ใส่ Tokens ในการตั้งค่าด้านบน (URL ใช้ค่าเริ่มต้นแล้ว)</li>
             </ul>
             <div className="mt-2 pt-2 border-t border-blue-200">
               <p className="text-xs text-blue-700">
-                💡 <strong>เคล็ดลับ:</strong> กดปุ่ม "ทดสอบ" หลังจากใส่ URL และ Token เพื่อตรวจสอบการเชื่อมต่อ
+                💡 <strong>เคล็ดลับ:</strong> กดปุ่ม "ทดสอบ" หลังจากใส่ Token เพื่อตรวจสอบการเชื่อมต่อ
               </p>
             </div>
           </div>

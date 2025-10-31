@@ -46,8 +46,8 @@ const defaultTrueWallet = {
 
 const trueWalletUrls = {
   balance: 'https://apis.truemoneyservices.com/account/v1/balance',
-  transactions: 'https://apis.truemoneyservices.com/account/v1/my-last-receive', 
-  transferSearch: 'https://api.truemoneyservices.com/transaction/v1/history'
+  transactions: 'https://apis.truemoneyservices.com/account/v1/my-last-receive',
+  transferSearch: 'https://apis.truemoneyservices.com/account/v1/my-receive'
 };
 
 export const Settings: React.FC = () => {
@@ -235,7 +235,7 @@ export const Settings: React.FC = () => {
         return;
       }
 
-      // ใช้ GET method สำหรับ Balance API และ POST method สำหรับ Transactions API
+      // ใช้ GET method สำหรับ Balance API และ POST method สำหรับ Transactions และ Transfer Search API
       let response;
       if (apiType === 'balance') {
         // Balance API ใช้ GET method (ทดสอบสำเร็จ)

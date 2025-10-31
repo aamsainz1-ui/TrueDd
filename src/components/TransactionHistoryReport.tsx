@@ -318,55 +318,55 @@ export function TransactionHistoryReport() {
       )}
 
       {/* Transaction List */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-xl font-bold mb-4">รายการรับเงินทั้งหมด</h2>
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">รายการรับเงินทั้งหมด</h2>
         
         {isLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-muted-foreground mt-2">กำลังโหลดข้อมูล...</p>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">กำลังโหลดข้อมูล...</p>
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive text-sm sm:text-base">{error}</p>
             <button
               onClick={fetchTransactionHistory}
-              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-sm sm:text-base"
             >
               ลองใหม่อีกครั้ง
             </button>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground text-sm sm:text-base">
             ไม่พบข้อมูลประวัติรายการรับเงิน
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="max-h-[500px] sm:max-h-[600px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
             {transactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                className="flex items-center justify-between p-3 sm:p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors gap-2"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="p-2 rounded-full bg-success/10 text-success">
-                    <Phone className="w-5 h-5" />
+                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                  <div className="p-1.5 sm:p-2 rounded-full bg-success/10 text-success flex-shrink-0">
+                    <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{transaction.phone_number}</p>
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDateTime(transaction.transaction_date, transaction.transaction_time)}</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground text-sm sm:text-base truncate">{transaction.phone_number}</p>
+                    <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{formatDateTime(transaction.transaction_date, transaction.transaction_time)}</span>
                     </div>
                     {transaction.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{transaction.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{transaction.description}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
                       เลขอ้างอิง: {transaction.transaction_id}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg text-success">
+                <div className="text-right flex-shrink-0">
+                  <p className="font-bold text-base sm:text-lg text-success">
                     +฿{formatCurrency(transaction.amount)}
                   </p>
                   <p className="text-xs text-success">สำเร็จ</p>

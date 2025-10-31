@@ -58,6 +58,72 @@ export function Settings() {
     }
   };
 
+  const saveAPISettings = () => {
+    try {
+      setIsSaving(true);
+      // Save only API-related settings (exclude Telegram/LINE)
+      const apiSettings = {
+        balanceApiUrl: config.balanceApiUrl,
+        balanceApiToken: config.balanceApiToken,
+        transactionsApiUrl: config.transactionsApiUrl,
+        transactionsApiToken: config.transactionsApiToken,
+        transferSearchApiUrl: config.transferSearchApiUrl,
+        transferSearchApiToken: config.transferSearchApiToken,
+        telegramBotToken: config.telegramBotToken,
+        telegramChatId: config.telegramChatId,
+        lineNotifyToken: config.lineNotifyToken
+      };
+      
+      const currentConfig = localStorage.getItem(STORAGE_KEY);
+      if (currentConfig) {
+        const existingConfig = JSON.parse(currentConfig);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existingConfig, ...apiSettings }));
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_CONFIG, ...apiSettings }));
+      }
+      
+      // Update the service to use new config
+      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: { ...config, ...apiSettings } }));
+      
+      showSaveMessage('success', 'บันทึกการตั้งค่า API สำเร็จ');
+    } catch (error) {
+      console.error('Failed to save API settings:', error);
+      showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่า API ได้');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveNotificationSettings = () => {
+    try {
+      setIsSaving(true);
+      // Save notification settings (Telegram/LINE only)
+      const notificationSettings = {
+        telegramBotToken: config.telegramBotToken,
+        telegramChatId: config.telegramChatId,
+        lineNotifyToken: config.lineNotifyToken
+      };
+      
+      const currentConfig = localStorage.getItem(STORAGE_KEY);
+      if (currentConfig) {
+        const existingConfig = JSON.parse(currentConfig);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existingConfig, ...notificationSettings }));
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_CONFIG, ...notificationSettings }));
+      }
+      
+      // Update the service to use new config
+      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: { ...config, ...notificationSettings } }));
+      
+      showSaveMessage('success', 'บันทึกการตั้งค่าแจ้งเตือนสำเร็จ');
+    } catch (error) {
+      console.error('Failed to save notification settings:', error);
+      showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่าแจ้งเตือนได้');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveConfig = () => {
     try {
       setIsSaving(true);
@@ -66,7 +132,7 @@ export function Settings() {
       // Update the service to use new config
       window.dispatchEvent(new CustomEvent('api-config-updated', { detail: config }));
       
-      showSaveMessage('success', 'บันทึกการตั้งค่าสำเร็จ');
+      showSaveMessage('success', 'บันทึกการตั้งค่าทั้งหมดสำเร็จ');
     } catch (error) {
       console.error('Failed to save config:', error);
       showSaveMessage('error', 'ไม่สามารถบันทึกการตั้งค่าได้');

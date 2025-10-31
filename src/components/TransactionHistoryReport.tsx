@@ -43,6 +43,19 @@ export function TransactionHistoryReport() {
     }).format(amount);
   };
 
+  // ค้นหายอดรวมของวันนี้
+  const getTodayTotal = (dailyTotals: Array<{ date: string; total: number; count: number }>) => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const todayData = dailyTotals.find(day => day.date === today);
+    return todayData ? todayData.total : 0;
+  };
+
+  // ค้นหายอดรวมของวันล่าสุด
+  const getLatestDayTotal = (dailyTotals: Array<{ date: string; total: number; count: number }>) => {
+    if (dailyTotals.length === 0) return 0;
+    return dailyTotals[0].total; // วันที่มีรายการล่าสุด (เรียงจากใหม่ไปเก่า)
+  };
+
   const formatDateTime = (date: string, time: string) => {
     const dateObj = new Date(`${date}T${time}`);
     const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -285,8 +298,8 @@ export function TransactionHistoryReport() {
               <div className="text-xs sm:text-sm text-muted-foreground">จำนวนรายการทั้งหมด</div>
             </div>
             <div className="bg-success/10 rounded-lg p-3 sm:p-4">
-              <div className="text-xl sm:text-2xl font-bold text-success">฿{formatCurrency(summary.totalAmount)}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">ยอดรวมทั้งหมด</div>
+              <div className="text-xl sm:text-2xl font-bold text-success">฿{formatCurrency(getLatestDayTotal(summary.dailyTotals))}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">ยอดรวมวันล่าสุด</div>
             </div>
             <div className="bg-accent/10 rounded-lg p-3 sm:p-4 sm:col-span-2 md:col-span-1">
               <div className="text-xl sm:text-2xl font-bold text-accent">

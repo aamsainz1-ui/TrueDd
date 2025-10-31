@@ -124,6 +124,55 @@ export function Settings() {
     }
   };
 
+  const testTelegramConnection = async () => {
+    if (!config.telegramBotToken || !config.telegramChatId) {
+      showSaveMessage('error', 'กรุณากรอก Bot Token และ Chat ID ก่อนทดสอบ');
+      return;
+    }
+
+    try {
+      // Test Telegram API connection by getting bot info
+      const response = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getMe`);
+      const data = await response.json();
+      
+      if (data.ok) {
+        showSaveMessage('success', `เชื่อมต่อ Telegram Bot สำเร็จ! Bot: ${data.result.first_name}`);
+      } else {
+        showSaveMessage('error', `ไม่สามารถเชื่อมต่อได้: ${data.description}`);
+      }
+    } catch (error) {
+      showSaveMessage('error', 'ไม่สามารถเชื่อมต่อ Telegram API ได้');
+    }
+  };
+
+  const testLineConnection = async () => {
+    if (!config.lineNotifyToken) {
+      showSaveMessage('error', 'กรุณากรอก Access Token ก่อนทดสอบ');
+      return;
+    }
+
+    try {
+      // Test LINE Notify connection by sending a test message
+      const response = await fetch('https://notify-api.line.me/api/notify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.lineNotifyToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'message=ทดสอบการเชื่อมต่อ LINE Notify สำเร็จ!'
+      });
+      
+      if (response.ok) {
+        showSaveMessage('success', 'เชื่อมต่อ LINE Notify สำเร็จ! ตรวจสอบ LINE ของคุณ');
+      } else {
+        const errorData = await response.text();
+        showSaveMessage('error', `ไม่สามารถเชื่อมต่อได้: ${errorData}`);
+      }
+    } catch (error) {
+      showSaveMessage('error', 'ไม่สามารถเชื่อมต่อ LINE Notify API ได้');
+    }
+  };
+
   const saveConfig = () => {
     try {
       setIsSaving(true);
@@ -424,7 +473,69 @@ export function Settings() {
                 setTransferStatus
               )}
             </div>
+
+            {/* Save API Settings Button */}
+            <div className="mt-4 pt-3 border-t border-primary/20">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={saveAPISettings}
+                  disabled={isSaving}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
+                >
+                  <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">บันทึกตั้งค่า API</span>
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Telegram Bot Settings */}
+          <div className="border-2 border-blue-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">📱 Telegram Bot Settings</span>
+              <span className="block text-xs text-muted-foreground mt-1">สำหรับส่งไฟล์ CSV ผ่าน Telegram Bot</span>
+            </div>
+            
+            <div className="space-y-2.5 sm:space-y-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
+                  Bot Token
+                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Bot Token จาก @BotFather</span>
+                </label>
+                <input
+                  type="password"
+                  value={config.telegramBotToken}
+                  onChange={(e) => setConfig({ ...config, telegramBotToken: e.target.value })}
+                  placeholder="1234567890:AAEfr... (เริ่มต้นด้วยตัวเลข)"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
+                  Chat ID
+                  <span className="block sm:inline text-xs text-blue-600 sm:ml-2 font-semibold mt-0.5 sm:mt-0">📧 รหัส Chat หรือ Group</span>
+                </label>
+                <input
+                  type="text"
+                  value={config.telegramChatId}
+                  onChange={(e) => setConfig({ ...config, telegramChatId: e.target.value })}
+                  placeholder="-1001234567890 (Group) หรือ 123456789 (User)"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 bg-blue-50 touch-manipulation"
+                />
+              </div>
+            </div>
+
+            {/* Test Telegram Button */}
+            <div className="mt-4 pt-3 border-t border-blue-100">
+              <button
+                onClick={testTelegramConnection}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium min-h-[44px] touch-manipulation"
+              >
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="text-sm sm:text-base">ทดสอบการเชื่อมต่อ</span>
+              </button>
+            </div>
 
           {/* Telegram Bot Settings */}
           <div className="border-2 border-blue-200 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-transparent">
@@ -486,6 +597,28 @@ export function Settings() {
                 />
               </div>
             </div>
+
+            {/* Save Notification Settings Button */}
+            <div className="mt-4 pt-3 border-t border-green-100">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={saveNotificationSettings}
+                  disabled={isSaving}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] touch-manipulation"
+                >
+                  <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">บันทึกการตั้งค่าแจ้งเตือน</span>
+                </button>
+                
+                <button
+                  onClick={testLineConnection}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium min-h-[44px] touch-manipulation"
+                >
+                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">ทดสอบ</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -494,10 +627,10 @@ export function Settings() {
           <button
             onClick={saveConfig}
             disabled={isSaving}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
           >
             <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-            <span className="text-sm sm:text-base">บันทึกการตั้งค่า</span>
+            <span className="text-sm sm:text-base">บันทึกทั้งหมด</span>
           </button>
 
           <button
@@ -519,13 +652,39 @@ export function Settings() {
 
         {/* Info Box */}
         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 mb-1.5 sm:mb-2">คำแนะนำ</h3>
+          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 mb-1.5 sm:mb-2">คำแนะนำการใช้งาน</h3>
           <ul className="text-xs sm:text-sm text-blue-800 space-y-1 sm:space-y-1.5">
             <li className="leading-relaxed">• URL สามารถเป็น relative path เช่น /functions/v1/api-name หรือ absolute URL</li>
             <li className="leading-relaxed">• กดปุ่ม "ทดสอบการเชื่อมต่อ" เพื่อตรวจสอบว่า API ทำงานได้หรือไม่</li>
-            <li className="leading-relaxed">• กดปุ่ม "บันทึกการตั้งค่า" เพื่อบันทึกการเปลี่ยนแปลง</li>
+            <li className="leading-relaxed">• บันทึกการตั้งค่า: API และ แจ้งเตือน แยกกัน หรือใช้ปุ่ม "บันทึกทั้งหมด"</li>
             <li className="leading-relaxed">• การตั้งค่าจะถูกบันทึกไว้ใน Browser localStorage</li>
           </ul>
+          
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h4 className="text-xs font-semibold text-blue-900 mb-1">🔑 วิธีรับ Telegram Bot Token:</h4>
+            <ol className="text-xs text-blue-800 space-y-0.5 pl-2">
+              <li>1. เริ่มแชทกับ @BotFather ใน Telegram</li>
+              <li>2. ส่งคำสั่ง /newbot และทำตามขั้นตอน</li>
+              <li>3. คัดลอก Bot Token ที่ได้</li>
+            </ol>
+          </div>
+          
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h4 className="text-xs font-semibold text-blue-900 mb-1">💬 วิธีรับ LINE Access Token:</h4>
+            <ol className="text-xs text-blue-800 space-y-0.5 pl-2">
+              <li>1. ไปที่ https://notify-bot.line.me/authorize</li>
+              <li>2. เข้าสู่ระบบและอนุญาตการแจ้งเตือน</li>
+              <li>3. คัดลอก Access Token ที่ได้รับ</li>
+            </ol>
+          </div>
+          
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <h4 className="text-xs font-semibold text-blue-900 mb-1">📋 Chat ID สำหรับ Telegram:</h4>
+            <ul className="text-xs text-blue-800 space-y-0.5">
+              <li>• ส่วนตัว: เข้ากับ Bot และส่งข้อความใดๆ</li>
+              <li>• กลุ่ม: เพิ่ม Bot เข้ากลุ่ม และดู Chat ID จาก URL</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

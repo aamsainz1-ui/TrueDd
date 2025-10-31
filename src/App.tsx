@@ -213,10 +213,13 @@ function App() {
         {currentPage === 'settings' && <Settings />}
       </main>
 
-      <footer className="bg-white border-t border-border mt-8 sm:mt-12 py-4 sm:py-6">
-        <div className="container mx-auto px-3 sm:px-4 text-center text-muted-foreground text-xs sm:text-sm">
-          <p>True Wallet Dashboard - แดชบอร์ดจัดการเงิน</p>
-          <p className="mt-1">พัฒนาโดย MiniMax Agent</p>
+      <footer className="bg-white border-t border-border mt-8 sm:mt-12 py-3 sm:py-4">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="text-center text-muted-foreground text-xs">
+            <p className="font-medium">True Wallet Dashboard</p>
+            <p className="mt-0.5 opacity-70">จัดการเงินอย่างมีประสิทธิภาพ</p>
+            <p className="mt-1 text-[10px] sm:text-xs opacity-50">พัฒนาโดย MiniMax Agent</p>
+          </div>
         </div>
       </footer>
     </div>

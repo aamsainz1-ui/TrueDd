@@ -16,13 +16,16 @@ export function Header({ onRefresh, isLoading, currentTime }: HeaderProps) {
               <Wallet className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">True Wallet</h1>
-              <p className="text-xs sm:text-sm text-white/80 truncate">แดชบอร์ดจัดการเงิน</p>
+              <h1 className="text-base sm:text-lg md:text-xl font-bold">
+                <span className="hidden xs:inline">True Wallet</span>
+                <span className="xs:hidden">Wallet</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-white/80">แดชบอร์ดจัดการเงิน</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-            <div className="text-right hidden md:block">
-              <div className="text-xs sm:text-sm font-medium whitespace-nowrap">{currentTime}</div>
+          <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
+            <div className="text-right hidden lg:block">
+              <div className="text-xs sm:text-sm font-medium whitespace-nowrap truncate max-w-32">{currentTime}</div>
             </div>
             <button
               onClick={onRefresh}

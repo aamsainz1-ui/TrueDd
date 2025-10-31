@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { trueWalletService } from '../services/trueWalletService';
+import { ClearHistoryButton } from './ClearHistoryButton';
 import { Download, Calendar, Phone, Search, FileSpreadsheet, TrendingUp } from 'lucide-react';
 
 interface TransactionHistory {
@@ -192,6 +193,15 @@ export function TransactionHistoryReport() {
               <span className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}>↻</span>
               <span>รีเฟรช</span>
             </button>
+            <ClearHistoryButton 
+              searchTerm={filters.phoneNumber || undefined}
+              onClear={() => {
+                console.log('History cleared, refreshing...');
+                setTimeout(() => {
+                  fetchTransactionHistory();
+                }, 1000);
+              }}
+            />
             <button
               onClick={exportToExcel}
               disabled={transactions.length === 0}

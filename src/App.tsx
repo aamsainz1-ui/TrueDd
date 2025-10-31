@@ -6,6 +6,7 @@ import { TransactionList } from './components/TransactionList';
 import { TransferSearch } from './components/TransferSearch';
 import { TransactionHistoryReport } from './components/TransactionHistoryReport';
 import { APIStatus } from './components/APIStatus';
+import { CORSErrorMessage, MockDataFallback } from './components/CORSErrorMessage';
 import { Settings } from './components/Settings';
 import { DailyExportSettings } from './components/DailyExportSettings';
 import { BalanceTrendChart } from './components/BalanceTrendChart';
@@ -28,6 +29,8 @@ function App() {
   const [balanceStatus, setBalanceStatus] = useState<'success' | 'error' | 'loading'>('loading');
   const [transactionsStatus, setTransactionsStatus] = useState<'success' | 'error' | 'loading'>('loading');
   const [isUpdatingFromConfig, setIsUpdatingFromConfig] = useState(false);
+  const [isCORSError, setIsCORSError] = useState(false);
+  const [corsErrorCount, setCorsErrorCount] = useState(0);
 
   const fetchBalance = async () => {
     setIsLoadingBalance(true);
@@ -39,11 +42,39 @@ function App() {
       setBalance(data);
       setBalanceStatus('success');
       setLastUpdate(new Date().toISOString());
+      setIsCORSError(false); // ยกเลิก CORS error หากสำเร็จ
+      toast.success('อัปเดตยอดเงินสำเร็จ!');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'ไม่สามารถดึงข้อมูลยอดเงินได้';
-      setBalanceError(errorMessage);
-      setBalanceStatus('error');
+      
+      // ตรวจสอบ CORS error
+      const isCORS = errorMessage.includes('CORS') || 
+                     errorMessage.includes('Cross-Origin') ||
+                     errorMessage.includes('fetch') ||
+                     err instanceof TypeError;
+      
+      if (isCORS) {
+        setIsCORSError(true);
+        setCorsErrorCount(prev => prev + 1);
+        setBalanceError('🚨 ปัญหา CORS - ต้องใช้ Extension หรือ Proxy');
+        setBalanceStatus('error');
+        console.warn('CORS error detected in balance fetch:', errorMessage);
+      } else {
+        setBalanceError(errorMessage);
+        setBalanceStatus('error');
+        toast.error('❌ ดึงยอดเงินล้มเหลว: ' + errorMessage);
+      }
+      
       console.error('Error fetching balance:', err);
+      
+      // ตั้งค่า fallback data เพื่อให้ UI ยังแสดงผลได้
+      if (!balance) {
+        setBalance({
+          currentBalance: 0,
+          currency: 'THB',
+          timestamp: new Date().toISOString()
+        });
+      }
     } finally {
       setIsLoadingBalance(false);
     }
@@ -59,10 +90,31 @@ function App() {
       setTransactions(data);
       setTransactionsStatus('success');
       setLastUpdate(new Date().toISOString());
+      
+      if (data.length > 0) {
+        toast.success(`อัปเดตธุรกรรมสำเร็จ! พบ ${data.length} รายการ`);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'ไม่สามารถดึงข้อมูลธุรกรรมได้';
-      setTransactionsError(errorMessage);
-      setTransactionsStatus('error');
+      
+      // ตรวจสอบ CORS error
+      const isCORS = errorMessage.includes('CORS') || 
+                     errorMessage.includes('Cross-Origin') ||
+                     errorMessage.includes('fetch') ||
+                     err instanceof TypeError;
+      
+      if (isCORS) {
+        setIsCORSError(true);
+        setCorsErrorCount(prev => prev + 1);
+        setTransactionsError('🚨 ปัญหา CORS - ต้องใช้ Extension หรือ Proxy');
+        setTransactionsStatus('error');
+        console.warn('CORS error detected in transactions fetch:', errorMessage);
+      } else {
+        setTransactionsError(errorMessage);
+        setTransactionsStatus('error');
+        toast.error('❌ ดึงธุรกรรมล้มเหลว: ' + errorMessage);
+      }
+      
       console.error('Error fetching transactions:', err);
     } finally {
       setIsLoadingTransactions(false);
@@ -70,14 +122,48 @@ function App() {
   };
 
   const fetchAllData = async () => {
-    await Promise.all([fetchBalance(), fetchTransactions()]);
+    try {
+      await Promise.all([fetchBalance(), fetchTransactions()]);
+    } catch (error) {
+      console.error('Error in fetchAllData:', error);
+    }
+  };
+
+  const handleRefresh = () => {
+    setIsCORSError(false);
+    fetchAllData();
+  };
+
+  const handleOpenSettings = () => {
+    setCurrentPage('settings');
   };
 
   useEffect(() => {
-    fetchAllData();
+    // เริ่มดึงข้อมูลทันทีที่ component mount
+    const initLoad = async () => {
+      try {
+        console.log('🚀 เริ่มต้นโหลดข้อมูล Dashboard...');
+        
+        // ตั้งค่า timeout 15 วินาทีสำหรับการโหลดครั้งแรก
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('⏰ การโหลดข้อมูลหมดเวลา (15 วินาที)')), 15000);
+        });
+        
+        await Promise.race([fetchAllData(), timeoutPromise]);
+        console.log('✅ โหลดข้อมูลเสร็จสิ้น');
+        
+      } catch (error) {
+        console.error('❌ เกิดข้อผิดพลาดในการโหลดครั้งแรก:', error);
+        // แสดง toast แจ้งข้อผิดพลาดและขอให้ผู้ใช้ลองใหม่
+        toast.error('⚠️ การเชื่อมต่อล้มเหลว กรุณาลองรีเฟรชหน้าเว็บ');
+      }
+    };
+    
+    initLoad();
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
+      console.log('🔄 รีเฟรชข้อมูลอัตโนมัติ...');
       fetchAllData();
     }, 30000);
 
@@ -128,10 +214,6 @@ function App() {
     };
   }, []);
 
-  const handleRefresh = () => {
-    fetchAllData();
-  };
-
   const handleTransferSearch = async (phoneNumber: string, amount?: number) => {
     return await trueWalletService.searchTransfersByPhone(phoneNumber, amount);
   };
@@ -148,6 +230,19 @@ function App() {
             <span className="text-sm text-blue-800 font-medium">กำลังอัปเดตข้อมูลจากการตั้งค่าใหม่...</span>
           </div>
         </div>
+      )}
+      
+      {/* แสดงข้อความ CORS Error หากเกิดปัญหา */}
+      {isCORSError && (
+        <CORSErrorMessage 
+          onRefresh={handleRefresh}
+          onOpenSettings={handleOpenSettings}
+        />
+      )}
+      
+      {/* Mock data fallback หากไม่มีข้อมูลจริง */}
+      {isCORSError && !isLoadingBalance && !isLoadingTransactions && (
+        <MockDataFallback balance={61897.90} transactions={[]} />
       )}
       
       <APIStatus 

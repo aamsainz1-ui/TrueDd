@@ -115,14 +115,20 @@ export class TrueWalletService {
       console.log('💰 เรียก Balance API ด้วย URL:', balanceUrl);
       console.log('🔑 ใช้ token:', balanceToken.substring(0, 8) + '...');
 
-      // เรียก TrueMoney Balance API โดยตรง (GET method)
+      // เรียก TrueMoney Balance API โดยตรง (GET method) พร้อม timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 วินาที timeout
+      
       const response = await fetch(balanceUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${balanceToken}`,
           'Accept': 'application/json',
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -166,7 +172,11 @@ export class TrueWalletService {
         timestamp: result.data.updated_at || new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Failed to fetch balance:', error);
+      console.error('❌ Failed to fetch balance:', error);
+      // แสดงข้อผิดพลาดที่เข้าใจง่ายสำหรับผู้ใช้
+      if (error.name === 'AbortError') {
+        throw new Error('⏰ การเชื่อมต่อ Balance API หมดเวลา (10 วินาที)');
+      }
       throw error;
     }
   }
@@ -193,14 +203,20 @@ export class TrueWalletService {
       console.log('📡 เรียก Transactions API ด้วย URL:', transactionsUrl);
       console.log('🔑 ใช้ token:', transactionsToken.substring(0, 8) + '...');
 
-      // เรียก TrueMoney Transactions API (my-last-receive) โดยตรง
+      // เรียก TrueMoney Transactions API (my-last-receive) โดยตรง พร้อม timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 วินาที timeout
+      
       const response = await fetch(transactionsUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${transactionsToken}`,
           'Accept': 'application/json',
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         console.error('❌ Transactions API Error:', {
@@ -251,7 +267,7 @@ export class TrueWalletService {
           description: item.message || ''
         };
 
-        // Auto-save transaction history for each recent transaction
+        // Auto-save transaction history for each recent transaction (ไม่ทำให้ main process หยุดทำงาน)
         this.saveTransactionHistory({
           phoneNumber: item.sender_mobile || '',
           amount: amountValue,
@@ -260,7 +276,8 @@ export class TrueWalletService {
           description: `รับเงินรายการล่าสุด - ${item.event_type === 'P2P' ? 'รับโอนเงิน' : 'รายการอื่น'}`,
           sourceType: 'recent_transactions'
         }).catch(error => {
-          console.error('Failed to auto-save recent transaction history:', error);
+          console.warn('⚠️ Failed to auto-save recent transaction history (ไม่กระทบการแสดงผลหลัก):', error.message);
+          // ไม่ throw error เพื่อไม่ให้หยุดการแสดงผลหลัก
         });
 
         return transaction;
@@ -268,7 +285,11 @@ export class TrueWalletService {
 
       return processedTransactions;
     } catch (error) {
-      console.error('Failed to fetch recent transactions:', error);
+      console.error('❌ Failed to fetch recent transactions:', error);
+      // แสดงข้อผิดพลาดที่เข้าใจง่ายสำหรับผู้ใช้
+      if (error.name === 'AbortError') {
+        throw new Error('⏰ การเชื่อมต่อ Transactions API หมดเวลา (10 วินาที)');
+      }
       throw error;
     }
   }
@@ -409,12 +430,13 @@ export class TrueWalletService {
           
           this.saveTransactionHistory(saveData).then(result => {
             if (result) {
-              console.log(`Successfully saved transaction history for transfer ${index + 1}`);
+              console.log(`✅ Successfully saved transaction history for transfer ${index + 1}`);
             } else {
-              console.error(`Failed to save transaction history for transfer ${index + 1}`);
+              console.warn(`⚠️ Failed to save transaction history for transfer ${index + 1} (ไม่กระทบผลการค้นหา)`);
             }
           }).catch(error => {
-            console.error('Failed to auto-save transaction history:', error);
+            console.warn(`⚠️ Failed to auto-save transfer history ${index + 1} (ไม่กระทบผลการค้นหา):`, error.message);
+            // ไม่ throw error เพื่อไม่ให้หยุดการแสดงผลหลัก
           });
 
           return transfer;
@@ -457,7 +479,7 @@ export class TrueWalletService {
     sourceType?: string;
   }): Promise<boolean> {
     try {
-      console.log('Saving transaction history with data:', data);
+      console.log('💾 Attempting to save transaction history:', data);
       
       const response = await fetch(`${this.supabaseUrl}/functions/v1/save-transaction-history`, {
         method: 'POST',
@@ -468,27 +490,27 @@ export class TrueWalletService {
         body: JSON.stringify(data)
       });
 
-      console.log('Save transaction history response status:', response.status);
+      console.log('📡 Save transaction history response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Save transaction history API error:', response.status, response.statusText, errorText);
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        console.warn(`⚠️ Save transaction history API error (ไม่กระทบฟีเจอร์หลัก): ${response.status} ${response.statusText}`, errorText);
+        return false; // ไม่ throw error เพื่อไม่ให้หยุดการทำงานหลัก
       }
 
       const result = await response.json();
-      console.log('Save transaction history result:', result);
+      console.log('✅ Save transaction history result:', result);
       
       if (result.error) {
-        console.error('Save transaction history business error:', result.error);
-        throw new Error(result.error.message);
+        console.warn(`⚠️ Save transaction history business error (ไม่กระทบฟีเจอร์หลัก):`, result.error);
+        return false;
       }
 
-      console.log('Transaction history saved successfully:', result);
+      console.log('✅ Transaction history saved successfully:', result);
       return true;
     } catch (error) {
-      console.error('Failed to save transaction history:', error);
-      return false;
+      console.warn(`⚠️ Failed to save transaction history (ไม่กระทบฟีเจอร์หลัก):`, error.message);
+      return false; // ไม่ throw error เพื่อไม่ให้หยุดการทำงานหลัก
     }
   }
 

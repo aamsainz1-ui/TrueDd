@@ -259,15 +259,15 @@ export function Settings() {
           </div>
 
           {/* Transactions API */}
-          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-4">
-              <span className="text-base font-bold text-foreground">Transactions API</span>
+          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">Transactions API</span>
               <span className="block text-xs text-muted-foreground mt-1">สำหรับดึงข้อมูลรายการธุรกรรมล่าสุด</span>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API URL
                 </label>
                 <input
@@ -275,21 +275,21 @@ export function Settings() {
                   value={config.transactionsApiUrl}
                   onChange={(e) => setConfig({ ...config, transactionsApiUrl: e.target.value })}
                   placeholder="/functions/v1/true-wallet-transactions"
-                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API Token
-                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
                 </label>
                 <input
                   type="password"
                   value={config.transactionsApiToken}
                   onChange={(e) => setConfig({ ...config, transactionsApiToken: e.target.value })}
                   placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
                 />
               </div>
             </div>
@@ -307,15 +307,15 @@ export function Settings() {
           </div>
 
           {/* Transfer Search API */}
-          <div className="border-2 border-primary/20 rounded-lg p-5 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="mb-4">
-              <span className="text-base font-bold text-foreground">Transfer Search API</span>
+          <div className="border-2 border-primary/20 rounded-lg p-4 sm:p-5 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-sm sm:text-base font-bold text-foreground">Transfer Search API</span>
               <span className="block text-xs text-muted-foreground mt-1">สำหรับค้นหาประวัติการโอนเงิน</span>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API URL
                 </label>
                 <input
@@ -323,21 +323,21 @@ export function Settings() {
                   value={config.transferSearchApiUrl}
                   onChange={(e) => setConfig({ ...config, transferSearchApiUrl: e.target.value })}
                   placeholder="/functions/v1/true-wallet-transfer-search"
-                  className="w-full px-4 py-2.5 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary touch-manipulation"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
+                <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-1.5">
                   API Token
-                  <span className="text-xs text-primary ml-2 font-semibold">🔑 ระบุ Token สำหรับ Authorization</span>
+                  <span className="block sm:inline text-xs text-primary sm:ml-2 font-semibold mt-0.5 sm:mt-0">🔑 ระบุ Token สำหรับ Authorization</span>
                 </label>
                 <input
                   type="password"
                   value={config.transferSearchApiToken}
                   onChange={(e) => setConfig({ ...config, transferSearchApiToken: e.target.value })}
                   placeholder="Bearer Token (ถ้ามี)"
-                  className="w-full px-4 py-2.5 border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary bg-primary/5 touch-manipulation"
                 />
               </div>
             </div>
@@ -356,41 +356,41 @@ export function Settings() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-border">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border">
           <button
             onClick={saveConfig}
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
           >
-            <Save className="w-5 h-5" />
-            บันทึกการตั้งค่า
+            <Save className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="text-sm sm:text-base">บันทึกการตั้งค่า</span>
           </button>
 
           <button
             onClick={loadConfig}
-            className="flex items-center gap-2 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
           >
-            <Download className="w-5 h-5" />
-            โหลดการตั้งค่า
+            <Download className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="text-sm sm:text-base">โหลดการตั้งค่า</span>
           </button>
 
           <button
             onClick={resetToDefault}
-            className="flex items-center gap-2 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium min-h-[44px] w-full sm:w-auto touch-manipulation"
           >
-            <RefreshCw className="w-5 h-5" />
-            รีเซ็ตเป็นค่าเริ่มต้น
+            <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="text-sm sm:text-base">รีเซ็ตเป็นค่าเริ่มต้น</span>
           </button>
         </div>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">คำแนะนำ</h3>
-          <ul className="text-xs text-blue-800 space-y-1">
-            <li>• URL สามารถเป็น relative path เช่น /functions/v1/api-name หรือ absolute URL</li>
-            <li>• กดปุ่ม "ทดสอบการเชื่อมต่อ" เพื่อตรวจสอบว่า API ทำงานได้หรือไม่</li>
-            <li>• กดปุ่ม "บันทึกการตั้งค่า" เพื่อบันทึกการเปลี่ยนแปลง</li>
-            <li>• การตั้งค่าจะถูกบันทึกไว้ใน Browser localStorage</li>
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 mb-1.5 sm:mb-2">คำแนะนำ</h3>
+          <ul className="text-xs sm:text-sm text-blue-800 space-y-1 sm:space-y-1.5">
+            <li className="leading-relaxed">• URL สามารถเป็น relative path เช่น /functions/v1/api-name หรือ absolute URL</li>
+            <li className="leading-relaxed">• กดปุ่ม "ทดสอบการเชื่อมต่อ" เพื่อตรวจสอบว่า API ทำงานได้หรือไม่</li>
+            <li className="leading-relaxed">• กดปุ่ม "บันทึกการตั้งค่า" เพื่อบันทึกการเปลี่ยนแปลง</li>
+            <li className="leading-relaxed">• การตั้งค่าจะถูกบันทึกไว้ใน Browser localStorage</li>
           </ul>
         </div>
       </div>

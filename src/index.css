@@ -36,3 +36,60 @@ img {
 .fixed {
   position: fixed;
 }
+
+/* Custom Scrollbar Styles */
+@layer utilities {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgb(243 244 246); /* gray-100 */
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219); /* gray-300 */
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(156 163 175); /* gray-400 */
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+  }
+
+  /* Green theme scrollbar for True Wallet */
+  .custom-scrollbar-green::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar-green::-webkit-scrollbar-track {
+    background: rgb(220 252 231); /* green-100 */
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar-green::-webkit-scrollbar-thumb {
+    background: rgb(134 239 172); /* green-300 */
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .custom-scrollbar-green::-webkit-scrollbar-thumb:hover {
+    background: rgb(74 222 128); /* green-400 */
+  }
+
+  /* Firefox */
+  .custom-scrollbar-green {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(134 239 172) rgb(220 252 231);
+  }
+}

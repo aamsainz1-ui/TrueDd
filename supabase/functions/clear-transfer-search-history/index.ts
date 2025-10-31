@@ -81,7 +81,17 @@ serve(async (req) => {
       throw new Error(`Delete failed: ${deleteResponse.statusText}`);
     }
 
-    const deleteResult = await deleteResponse.json();
+    // Supabase DELETE response may not have JSON body, handle gracefully
+    let deleteResult = {};
+    try {
+      const responseText = await deleteResponse.text();
+      if (responseText) {
+        deleteResult = JSON.parse(responseText);
+      }
+    } catch (e) {
+      // Response is not JSON or empty, this is normal for DELETE operations
+      console.log('Delete response is not JSON or empty, which is expected');
+    }
     console.log('Delete result:', deleteResult);
 
     return new Response(JSON.stringify({

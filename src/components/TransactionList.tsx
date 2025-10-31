@@ -59,10 +59,10 @@ export function TransactionList({ transactions, isLoading = false }: Transaction
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-      <h2 className="text-xl font-bold text-foreground mb-4">รายการล่าสุด</h2>
+    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6">
+      <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">รายการล่าสุด</h2>
       
-      <div className="space-y-3">
+      <div className="max-h-[500px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -75,43 +75,43 @@ export function TransactionList({ transactions, isLoading = false }: Transaction
           transactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+              className="flex items-center justify-between p-3 sm:p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
             >
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                 <div
-                  className={`p-2 rounded-full ${
+                  className={`p-1.5 sm:p-2 rounded-full flex-shrink-0 ${
                     transaction.type === 'income'
                       ? 'bg-success/10 text-success'
                       : 'bg-destructive/10 text-destructive'
                   }`}
                 >
                   {transaction.type === 'income' ? (
-                    <ArrowDownLeft className="w-5 h-5" />
+                    <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <ArrowUpRight className="w-5 h-5" />
+                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground">{transaction.category}</p>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDateTime(transaction.datetime)}</span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm sm:text-base text-foreground truncate">{transaction.category}</p>
+                  <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+                    <Clock className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{formatDateTime(transaction.datetime)}</span>
                   </div>
                   {transaction.description && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
                       {transaction.description}
                     </p>
                   )}
                   {(transaction.sender || transaction.recipient) && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
                       {transaction.sender ? `จาก: ${transaction.sender}` : `ถึง: ${transaction.recipient}`}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-shrink-0 ml-2">
                 <p
-                  className={`font-bold text-lg ${
+                  className={`font-bold text-base sm:text-lg ${
                     transaction.type === 'income' ? 'text-success' : 'text-destructive'
                   }`}
                 >

@@ -95,46 +95,75 @@ export class TrueWalletService {
 
   async fetchBalance(): Promise<BalanceData> {
     try {
-      // เรียก TrueMoney Balance API ผ่าน Supabase Edge Function proxy
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/proxy-truemoney-balance`, {
-        method: 'POST',
+      // ใช้ Balance API โดยตรง (ไม่ผ่าน Supabase proxy)
+      const balanceUrl = this.apiConfig.balanceApiUrl || TRUEMONEY_ENDPOINTS.balance;
+      const balanceToken = this.apiConfig.balanceApiToken || DEFAULT_TOKENS.balance;
+      
+      console.log('🔧 ตรวจสอบ Balance API Config:');
+      console.log('  - URL:', balanceUrl);
+      console.log('  - Token:', balanceToken ? `${balanceToken.substring(0, 8)}...` : 'ไม่พบ');
+      console.log('  - ปลายทาง:', balanceUrl === TRUEMONEY_ENDPOINTS.balance ? '✅ Direct API call' : '🔧 Custom');
+      
+      if (!balanceUrl) {
+        throw new Error('Balance API URL ไม่พบ');
+      }
+      
+      if (!balanceToken) {
+        throw new Error('Balance API Token ไม่พบ');
+      }
+
+      console.log('💰 เรียก Balance API ด้วย URL:', balanceUrl);
+      console.log('🔑 ใช้ token:', balanceToken.substring(0, 8) + '...');
+
+      // เรียก TrueMoney Balance API โดยตรง (GET method)
+      const response = await fetch(balanceUrl, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${balanceToken}`,
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          endpoint: 'balance',
-          token: this.apiConfig.balanceApiToken || DEFAULT_TOKENS.balance,
-        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
+        if (response.status === 401) {
+          throw new Error('Balance API Token ไม่ถูกต้อง');
+        } else if (response.status === 404) {
+          throw new Error('Balance API URL ไม่พบ');
+        } else {
+          throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const result = await response.json();
-      console.log('Balance API Response:', result);
+      console.log('📋 Balance API Response:', result);
       
-      // รูปแบบ: { data: { status: "ok", data: { balance: "7018725", mobile_no: "...", updated_at: "..." } } }
-      const apiData = result.data?.data || result.data;
-      
-      if (!apiData) {
-        throw new Error('ไม่พบข้อมูลยอดเงิน');
-      }
-
       // ตรวจสอบ status
-      if (apiData.status === 'err') {
-        throw new Error(apiData.err || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
+      if (result.status === 'err') {
+        console.error('❌ Balance API business error:', result.err);
+        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
       }
       
-      if (!apiData.data || !apiData.data.balance) {
+      // TrueMoney API returns: { status: "ok", data: { balance: "7018725", mobile_no: "...", updated_at: "..." } }
+      console.log('🔍 กำลังประมวลผลข้อมูล balance...');
+      
+      if (!result.data || !result.data.balance) {
+        console.error('❌ ไม่พบข้อมูล balance ใน response:', result);
         throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
+      
+      // แปลงจากสตางค์เป็นบาท (Balance API ส่งเป็นสตางค์)
+      const balanceInBaht = parseFloat(result.data.balance || 0) / 100;
+      
+      console.log('💰 Balance ข้อมูลที่แปลงแล้ว:');
+      console.log(`  - ยอดเงิน: ${balanceInBaht.toLocaleString()} THB`);
+      console.log(`  - เบอร์โทรศัพท์: ${result.data.mobile_no || 'ไม่ระบุ'}`);
+      console.log(`  - อัพเดทล่าสุด: ${result.data.updated_at || 'ไม่ทราบ'}`);
+      console.log(`  - สกุลเงิน: THB`);
       
       return {
-        currentBalance: parseFloat(apiData.data.balance || 0) / 100, // แปลงจากสตางค์เป็นบาท
+        currentBalance: balanceInBaht, // แปลงจากสตางค์เป็นบาท
         currency: 'THB',
-        timestamp: apiData.data.updated_at || new Date().toISOString(),
+        timestamp: result.data.updated_at || new Date().toISOString(),
       };
     } catch (error) {
       console.error('Failed to fetch balance:', error);

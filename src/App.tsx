@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Header } from './components/Header';
 import { BalanceCard } from './components/BalanceCard';
 import { TransactionList } from './components/TransactionList';
@@ -26,6 +27,7 @@ function App() {
   
   const [balanceStatus, setBalanceStatus] = useState<'success' | 'error' | 'loading'>('loading');
   const [transactionsStatus, setTransactionsStatus] = useState<'success' | 'error' | 'loading'>('loading');
+  const [isUpdatingFromConfig, setIsUpdatingFromConfig] = useState(false);
 
   const fetchBalance = async () => {
     setIsLoadingBalance(true);
@@ -100,9 +102,29 @@ function App() {
     updateTime();
     const timeInterval = setInterval(updateTime, 1000);
 
+    // Listen for config updates from Settings
+    const handleConfigUpdate = () => {
+      console.log('Config updated, refreshing data...');
+      setIsUpdatingFromConfig(true);
+      toast.success('อัปเดตการตั้งค่าแล้ว กำลังรีเฟรชข้อมูล...');
+      
+      // Small delay to show updating status
+      setTimeout(() => {
+        fetchAllData().finally(() => {
+          setIsUpdatingFromConfig(false);
+          toast.success('อัปเดตข้อมูลสำเร็จ!');
+        });
+      }, 500);
+    };
+
+    window.addEventListener('api-config-updated', handleConfigUpdate);
+    window.addEventListener('configUpdated', handleConfigUpdate);
+
     return () => {
       clearInterval(interval);
       clearInterval(timeInterval);
+      window.removeEventListener('api-config-updated', handleConfigUpdate);
+      window.removeEventListener('configUpdated', handleConfigUpdate);
     };
   }, []);
 
@@ -119,6 +141,15 @@ function App() {
   // Render dashboard content
   const renderDashboard = () => (
     <div className="max-w-4xl mx-auto">
+      {isUpdatingFromConfig && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm text-blue-800 font-medium">กำลังอัปเดตข้อมูลจากการตั้งค่าใหม่...</span>
+          </div>
+        </div>
+      )}
+      
       <APIStatus 
         balanceStatus={balanceStatus}
         transactionsStatus={transactionsStatus}

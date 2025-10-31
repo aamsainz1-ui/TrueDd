@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Settings as SettingsIcon, Check, X, RefreshCw, Save, Download } from 'lucide-react';
 
 interface APIConfig {
@@ -57,6 +58,18 @@ export const Settings: React.FC = () => {
 
   useEffect(() => {
     loadConfig();
+    
+    // Listen for API config updates
+    const handleApiConfigUpdate = () => {
+      console.log('Settings received API config update');
+      // Reload config to show latest values
+      loadConfig();
+    };
+
+    window.addEventListener('api-config-updated', handleApiConfigUpdate);
+    return () => {
+      window.removeEventListener('api-config-updated', handleApiConfigUpdate);
+    };
   }, []);
 
   const loadConfig = () => {
@@ -71,7 +84,7 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const saveConfig = () => {
+  const saveConfig = async () => {
     setIsLoading(true);
     try {
       localStorage.setItem('walletConfig', JSON.stringify(config));
@@ -79,11 +92,71 @@ export const Settings: React.FC = () => {
       
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('configUpdated', { detail: config }));
+      
+      // Also update the TrueWalletService config
+      const serviceConfig = {
+        balanceApiToken: config.balanceApiToken,
+        transactionsApiToken: config.transactionsApiToken,
+        transferSearchApiToken: config.transferSearchApiToken,
+        balanceApiUrl: 'https://apis.truemoneyservices.com/account/v1/balance',
+        transactionsApiUrl: 'https://apis.truemoneyservices.com/account/v1/my-last-receive',
+        transferSearchApiUrl: 'https://apis.truemoneyservices.com/account/v1/my-receive'
+      };
+      window.dispatchEvent(new CustomEvent('api-config-updated', { detail: serviceConfig }));
+      
+      // Save to localStorage with the key used by TrueWalletService
+      localStorage.setItem('true-wallet-api-config', JSON.stringify(serviceConfig));
+      
+      // Test APIs to verify they work
+      await testAllAPIs();
+      
+      toast.success('บันทึกการตั้งค่าและทดสอบ API สำเร็จ!');
+      
     } catch (error) {
       setSaveMessage({ type: 'error', message: 'เกิดข้อผิดพลาดในการบันทึก' });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const testAllAPIs = async () => {
+    const results = [];
+    
+    // Test Balance API if token exists
+    if (config.balanceApiToken) {
+      try {
+        await testTrueWalletAPIs('balance');
+        results.push('Balance API: ✅ ทำงานได้');
+      } catch (error) {
+        results.push('Balance API: ❌ มีปัญหา');
+      }
+    }
+    
+    // Test Transactions API if token exists
+    if (config.transactionsApiToken) {
+      try {
+        await testTrueWalletAPIs('transactions');
+        results.push('Transactions API: ✅ ทำงานได้');
+      } catch (error) {
+        results.push('Transactions API: ❌ มีปัญหา');
+      }
+    }
+    
+    // Test Transfer Search API if token exists
+    if (config.transferSearchApiToken) {
+      try {
+        await testTrueWalletAPIs('transferSearch');
+        results.push('Transfer Search API: ✅ ทำงานได้');
+      } catch (error) {
+        results.push('Transfer Search API: ❌ มีปัญหา');
+      }
+    }
+    
+    const message = `ผลการทดสอบ API:\n${results.join('\n')}`;
+    setSaveMessage({ 
+      type: results.some(r => r.includes('✅')) ? 'success' : 'error', 
+      message 
+    });
   };
 
   const handleInputChange = (field: keyof APIConfig, value: string) => {
@@ -92,6 +165,20 @@ export const Settings: React.FC = () => {
 
   const resetToDefault = () => {
     setConfig({ ...defaultConfig, ...defaultSupabase, ...defaultTrueWallet });
+    
+    // Dispatch events to notify other components
+    const newConfig = { ...defaultConfig, ...defaultSupabase, ...defaultTrueWallet };
+    window.dispatchEvent(new CustomEvent('configUpdated', { detail: newConfig }));
+    
+    const serviceConfig = {
+      balanceApiToken: defaultTrueWallet.balanceApiToken,
+      transactionsApiToken: defaultTrueWallet.transactionsApiToken,
+      transferSearchApiToken: defaultTrueWallet.transferSearchApiToken,
+      balanceApiUrl: 'https://apis.truemoneyservices.com/account/v1/balance',
+      transactionsApiUrl: 'https://apis.truemoneyservices.com/account/v1/my-last-receive',
+      transferSearchApiUrl: 'https://apis.truemoneyservices.com/account/v1/my-receive'
+    };
+    window.dispatchEvent(new CustomEvent('api-config-updated', { detail: serviceConfig }));
   };
 
   const testSupabaseConnection = async () => {

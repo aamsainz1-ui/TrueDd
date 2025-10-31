@@ -54,10 +54,13 @@ export function TransactionHistoryReport() {
     setError(null);
     
     try {
+      console.log('Fetching transaction history with filters:', filters);
       const data = await trueWalletService.getTransactionHistory(filters);
+      console.log('Received transaction history data:', data);
       setTransactions(data.transactions);
       setSummary(data.summary);
     } catch (err) {
+      console.error('Error fetching transaction history:', err);
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูล');
     } finally {
       setIsLoading(false);
@@ -129,9 +132,40 @@ export function TransactionHistoryReport() {
     });
   };
 
+  const refreshHistory = () => {
+    console.log('Refreshing transaction history...');
+    fetchTransactionHistory();
+  };
+
   useEffect(() => {
     fetchTransactionHistory();
   }, []);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing transaction history...');
+      fetchTransactionHistory();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [filters]);
+
+  // Listen for custom events to refresh history
+  useEffect(() => {
+    const handleRefreshHistory = (event: CustomEvent) => {
+      console.log('Received refresh history event:', event.detail);
+      setTimeout(() => {
+        fetchTransactionHistory();
+      }, 500); // Small delay to ensure database is updated
+    };
+
+    window.addEventListener('refresh-transaction-history', handleRefreshHistory as EventListener);
+    
+    return () => {
+      window.removeEventListener('refresh-transaction-history', handleRefreshHistory as EventListener);
+    };
+  }, [filters]);
 
   return (
     <div className="space-y-6">
@@ -149,6 +183,14 @@ export function TransactionHistoryReport() {
             >
               <Search className="w-4 h-4" />
               <span>กรองข้อมูล</span>
+            </button>
+            <button
+              onClick={refreshHistory}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <span className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}>↻</span>
+              <span>รีเฟรช</span>
             </button>
             <button
               onClick={exportToExcel}

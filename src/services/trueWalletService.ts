@@ -217,13 +217,23 @@ export class TrueWalletService {
           };
 
           // Auto-save transaction history for each transfer found
-          this.saveTransactionHistory({
+          const saveData = {
             phoneNumber: fromName,
             amount: amountValue,
             transactionId: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
             transactionTime: item.received_time || new Date().toISOString(),
             description: `รับเงินจากการค้นหาโอนเงิน - ${phoneNumber}`,
             sourceType: 'transfer_search'
+          };
+          
+          console.log(`Auto-saving transaction history for transfer ${index + 1}:`, saveData);
+          
+          this.saveTransactionHistory(saveData).then(result => {
+            if (result) {
+              console.log(`Successfully saved transaction history for transfer ${index + 1}`);
+            } else {
+              console.error(`Failed to save transaction history for transfer ${index + 1}`);
+            }
           }).catch(error => {
             console.error('Failed to auto-save transaction history:', error);
           });
@@ -232,6 +242,21 @@ export class TrueWalletService {
         });
         
         console.log('All transfers processed:', transfers.length);
+        
+        // Trigger refresh of transaction history
+        console.log('Triggering transaction history refresh...');
+        setTimeout(() => {
+          // Send custom event to refresh transaction history
+          const event = new CustomEvent('refresh-transaction-history', {
+            detail: { 
+              source: 'searchTransfersByPhone',
+              timestamp: new Date().toISOString(),
+              transfersFound: transfers.length
+            }
+          });
+          window.dispatchEvent(event);
+        }, 1000); // Wait 1 second for database to be updated
+        
         return transfers;
       }
       
@@ -254,6 +279,8 @@ export class TrueWalletService {
     sourceType?: string;
   }): Promise<boolean> {
     try {
+      console.log('Saving transaction history with data:', data);
+      
       const response = await fetch(`${this.supabaseUrl}/functions/v1/save-transaction-history`, {
         method: 'POST',
         headers: {
@@ -263,13 +290,19 @@ export class TrueWalletService {
         body: JSON.stringify(data)
       });
 
+      console.log('Save transaction history response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Save transaction history API error:', response.status, response.statusText, errorText);
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('Save transaction history result:', result);
       
       if (result.error) {
+        console.error('Save transaction history business error:', result.error);
         throw new Error(result.error.message);
       }
 
@@ -304,6 +337,9 @@ export class TrueWalletService {
 
       const url = `${this.supabaseUrl}/functions/v1/get-transaction-history?${params.toString()}`;
       
+      console.log('Fetching transaction history with URL:', url);
+      console.log('Filters:', filters);
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -317,12 +353,16 @@ export class TrueWalletService {
       }
 
       const result = await response.json();
+      console.log('Transaction history response:', result);
       
       if (result.error) {
         throw new Error(result.error.message);
       }
 
-      return result.data;
+      const data = result.data;
+      console.log('Transaction history data:', data);
+      
+      return data;
     } catch (error) {
       console.error('Failed to get transaction history:', error);
       throw error;

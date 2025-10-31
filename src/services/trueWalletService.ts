@@ -128,41 +128,41 @@ export class TrueWalletService {
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
       // ตรวจสอบการตั้งค่า API ก่อนเรียก
-      const transferSearchUrl = this.apiConfig.transferSearchApiUrl;
-      const transferSearchToken = this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch;
+      const transactionsUrl = this.apiConfig.transactionsApiUrl || TRUEMONEY_ENDPOINTS.transactions;
+      const transactionsToken = this.apiConfig.transactionsApiToken || DEFAULT_TOKENS.transactions;
       
-      if (!transferSearchUrl) {
-        throw new Error('Transfer Search API URL ไม่พบ');
+      if (!transactionsUrl) {
+        throw new Error('Transactions API URL ไม่พบ');
       }
       
-      if (!transferSearchToken) {
-        throw new Error('Transfer Search API Token ไม่พบ');
+      if (!transactionsToken) {
+        throw new Error('Transactions API Token ไม่พบ');
       }
 
-      console.log('Fetching recent transactions with URL:', transferSearchUrl);
-      console.log('Using token:', transferSearchToken.substring(0, 8) + '...');
+      console.log('Fetching recent transactions with URL:', transactionsUrl);
+      console.log('Using token:', transactionsToken.substring(0, 8) + '...');
 
-      // เรียก TrueMoney Transfer Search API โดยตรง
-      const response = await fetch(transferSearchUrl, {
+      // เรียก TrueMoney Transactions API (my-last-receive) โดยตรง
+      const response = await fetch(transactionsUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${transferSearchToken}`,
+          'Authorization': `Bearer ${transactionsToken}`,
           'Accept': 'application/json',
         },
       });
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Transfer Search API Token ไม่ถูกต้อง');
+          throw new Error('Transactions API Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Transfer Search API URL ไม่พบ');
+          throw new Error('Transactions API URL ไม่พบ');
         } else {
-          throw new Error(`Transfer Search API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Transactions API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('Transfer Search API Response:', result);
+      console.log('Transactions API Response:', result);
       
       // ตรวจสอบ status
       if (result.status === 'err') {

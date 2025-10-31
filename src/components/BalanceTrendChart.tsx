@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
 interface DailyIncomeData {
   date: string;
@@ -12,6 +13,7 @@ export const BalanceTrendChart: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [selectedDay, setSelectedDay] = useState<DailyIncomeData | null>(null);
 
   // ดึงข้อมูลสรุปยอดรับเงินรายวัน
   const fetchDailyIncomeData = async () => {
@@ -19,7 +21,7 @@ export const BalanceTrendChart: React.FC = () => {
     setError(null);
     
     try {
-      console.log('🔄 เริ่มดึงข้อมูล daily income...');
+      console.log('เริ่มดึงข้อมูล daily income...');
       
       const response = await fetch(
         'https://kmloseczqatswwczqajs.supabase.co/functions/v1/daily-income-summary',
@@ -33,24 +35,24 @@ export const BalanceTrendChart: React.FC = () => {
         }
       );
 
-      console.log('📡 Response status:', response.status);
+      console.log('Response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('📊 API Response:', result);
+      console.log('API Response:', result);
       
       if (result.success) {
-        console.log('✅ ข้อมูลที่ได้รับ:', result.data);
+        console.log('ข้อมูลที่ได้รับ:', result.data);
         setChartData(result.data);
         setLastUpdate(new Date());
       } else {
         throw new Error(result.error?.message || 'Failed to fetch data');
       }
     } catch (error) {
-      console.error('❌ Error fetching daily income summary:', error);
+      console.error('Error fetching daily income summary:', error);
       setError(`ไม่สามารถโหลดข้อมูลได้: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -62,23 +64,71 @@ export const BalanceTrendChart: React.FC = () => {
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
-      console.log('⏰ Auto-refresh: ดึงข้อมูล daily income...');
+      console.log('Auto-refresh: ดึงข้อมูล daily income...');
       fetchDailyIncomeData();
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // เรียงข้อมูลใหม่ให้เป็น 7 วันล่าสุด
+  // สร้างช่วงวันที่ 7 วันล่าสุด (26 ต.ค. - 1 พ.ย. 2025)
+  const generateLast7Days = (): string[] => {
+    const today = new Date('2025-11-01'); // วันที่ปัจจุบัน
+    const dates: string[] = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      dates.push(date.toISOString().split('T')[0]); // YYYY-MM-DD
+    }
+    
+    return dates;
+  };
+
+  // จับคู่ข้อมูลจาก API กับวันที่ และเติมค่า 0 ถ้าไม่มีข้อมูล
   const sortedChartData = useMemo(() => {
-    console.log('📊 Total data points:', chartData.length);
-    console.log('📊 Data dates:', chartData.map(d => d.date));
-    const last7Days = chartData.slice(-7);
-    console.log('📊 Last 7 days:', last7Days.map(d => `${d.date} (${d.dateLabel}): ฿${d.dailyIncome}, ${d.transactionCount} รายการ`));
-    return last7Days;
+    const last7Days = generateLast7Days();
+    
+    console.log('วันที่ 7 วันล่าสุด:', last7Days);
+    console.log('ข้อมูลจาก API:', chartData.length, 'วัน');
+    
+    const completeData = last7Days.map(date => {
+      // หาข้อมูลจาก API สำหรับวันนี้
+      const dataForDate = chartData.find(d => d.date === date);
+      
+      if (dataForDate) {
+        console.log(`${date}: มีข้อมูล - ฿${dataForDate.dailyIncome}, ${dataForDate.transactionCount} รายการ`);
+        return dataForDate;
+      } else {
+        // ถ้าไม่มีข้อมูล ให้สร้างข้อมูลว่างๆ
+        const dateObj = new Date(date);
+        const dateLabel = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+        console.log(`${date}: ไม่มีข้อมูล - ใช้ค่า 0`);
+        return {
+          date: date,
+          dateLabel: dateLabel,
+          dailyIncome: 0,
+          transactionCount: 0
+        };
+      }
+    });
+    
+    console.log('ข้อมูลกราฟสมบูรณ์:', completeData.map(d => `${d.dateLabel}: ฿${d.dailyIncome}`));
+    return completeData;
   }, [chartData]);
 
-  if (isLoading) {
+  // Handler สำหรับคลิกจุดกราฟ
+  const handlePointClick = (data: DailyIncomeData) => {
+    console.log('Clicked on:', data);
+    setSelectedDay(data);
+  };
+
+  // ปิด modal
+  const closeModal = () => {
+    setSelectedDay(null);
+  };
+
+  if (isLoading && !chartData.length) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">แนวโน้มยอดรับเงินรายวัน (7 วันล่าสุด)</h3>
@@ -107,11 +157,11 @@ export const BalanceTrendChart: React.FC = () => {
   const createSVGChart = () => {
     const width = 600;
     const height = 280;
-    const padding = 50; // เพิ่ม padding สำหรับ labels
+    const padding = 50;
     
     const dailyIncomes = sortedChartData.map(d => d.dailyIncome);
     const minIncome = Math.min(...dailyIncomes, 0);
-    const maxIncome = Math.max(...dailyIncomes, 1000); // อย่างน้อย 1000
+    const maxIncome = Math.max(...dailyIncomes, 1000);
     
     const xStep = (width - 2 * padding) / (sortedChartData.length - 1);
     const yScale = (height - 2 * padding) / (maxIncome - minIncome || 1);
@@ -123,21 +173,31 @@ export const BalanceTrendChart: React.FC = () => {
       return `${x},${y}`;
     }).join(' ');
     
-    // สร้างจุด dots
+    // สร้างจุด dots (คลิกได้)
     const dots = sortedChartData.map((data, index) => {
       const x = padding + index * xStep;
       const y = height - padding - (data.dailyIncome - minIncome) * yScale;
       return (
-        <circle
-          key={index}
-          cx={x}
-          cy={y}
-          r="4"
-          fill="#10b981"
-          className="hover:r-6 transition-all cursor-pointer"
-        >
-          <title>{`${data.dateLabel}: ฿${Math.round(data.dailyIncome).toLocaleString()} (${data.transactionCount} รายการ)`}</title>
-        </circle>
+        <g key={index}>
+          <circle
+            cx={x}
+            cy={y}
+            r="6"
+            fill="#10b981"
+            className="cursor-pointer transition-all hover:r-8"
+            onClick={() => handlePointClick(data)}
+            style={{ cursor: 'pointer' }}
+          />
+          <circle
+            cx={x}
+            cy={y}
+            r="12"
+            fill="transparent"
+            className="cursor-pointer"
+            onClick={() => handlePointClick(data)}
+            style={{ cursor: 'pointer' }}
+          />
+        </g>
       );
     });
     
@@ -173,7 +233,6 @@ export const BalanceTrendChart: React.FC = () => {
     
     return (
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
-        {/* Grid lines */}
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" strokeWidth="1"/>
@@ -181,12 +240,9 @@ export const BalanceTrendChart: React.FC = () => {
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
         
-        {/* แกน y */}
         <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#ccc" />
-        {/* แกน x */}
         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#ccc" />
         
-        {/* เส้นกราฟ */}
         <polyline
           fill="none"
           stroke="#10b981"
@@ -195,70 +251,120 @@ export const BalanceTrendChart: React.FC = () => {
           className="drop-shadow-sm"
         />
         
-        {/* จุด */}
         {dots}
-        
-        {/* ป้ายแกน x */}
         {xLabels}
-        
-        {/* ป้ายแกน y */}
         {yLabels}
       </svg>
     );
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">แนวโน้มยอดรับเงินรายวัน (7 วันล่าสุด)</h3>
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-muted-foreground">
-            อัปเดต: {lastUpdate.toLocaleTimeString('th-TH', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
+    <>
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">แนวโน้มยอดรับเงินรายวัน (7 วันล่าสุด)</h3>
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-muted-foreground">
+              อัปเดต: {lastUpdate.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </div>
+            <button
+              onClick={fetchDailyIncomeData}
+              disabled={isLoading}
+              className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="รีเฟรชข้อมูล"
+            >
+              <span className={`text-primary text-sm ${isLoading ? 'animate-spin' : ''}`}>↻</span>
+            </button>
           </div>
-          <button
-            onClick={fetchDailyIncomeData}
-            disabled={isLoading}
-            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="รีเฟรชข้อมูล"
-          >
-            <span className={`text-primary text-sm ${isLoading ? 'animate-spin' : ''}`}>↻</span>
-          </button>
         </div>
-      </div>
-      
-      <div className="w-full" style={{ minHeight: '200px' }}>
-        {createSVGChart()}
+        
+        <div className="w-full" style={{ minHeight: '200px' }}>
+          {createSVGChart()}
+        </div>
+
+        <div className="flex justify-center mt-4 space-x-6 text-xs">
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-0.5 bg-green-500"></div>
+            <span className="text-muted-foreground">ยอดรับเงินรายวัน</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-muted-foreground">รายการรับเงิน (คลิกเพื่อดูรายละเอียด)</span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+          {sortedChartData.slice(-3).map((data, index) => (
+            <div key={index} className="bg-green-50 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground">{data.dateLabel}</div>
+              <div className="text-sm font-semibold text-green-600">
+                ฿{Math.round(data.dailyIncome).toLocaleString()}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {data.transactionCount} รายการ
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Legend สำหรับแสดงคำอธิบาย */}
-      <div className="flex justify-center mt-4 space-x-6 text-xs">
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-0.5 bg-green-500"></div>
-          <span className="text-muted-foreground">ยอดรับเงินรายวัน</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-muted-foreground">รายการรับเงิน</span>
-        </div>
-      </div>
-
-      {/* สรุปข้อมูลรายวัน */}
-      <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-        {sortedChartData.slice(-3).map((data, index) => (
-          <div key={index} className="bg-green-50 rounded-lg p-3">
-            <div className="text-xs text-muted-foreground">{data.dateLabel}</div>
-            <div className="text-sm font-semibold text-green-600">
-              ฿{Math.round(data.dailyIncome).toLocaleString()}
+      {/* Modal แสดงรายละเอียดวันที่เลือก */}
+      {selectedDay && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground">รายละเอียดวันที่ {selectedDay.dateLabel}</h3>
+              <button
+                onClick={closeModal}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                title="ปิด"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {data.transactionCount} รายการ
+
+            <div className="space-y-4">
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground mb-1">วันที่</div>
+                <div className="text-lg font-semibold text-foreground">{selectedDay.date}</div>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground mb-1">ยอดรับเงินทั้งหมด</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  ฿{selectedDay.dailyIncome.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground mb-1">จำนวนรายการ</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {selectedDay.transactionCount} รายการ
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground mb-1">ค่าเฉลี่ยต่อรายการ</div>
+                <div className="text-lg font-semibold text-gray-700">
+                  ฿{(selectedDay.dailyIncome / selectedDay.transactionCount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                ปิด
+              </button>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };

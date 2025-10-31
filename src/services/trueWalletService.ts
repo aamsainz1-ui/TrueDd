@@ -15,7 +15,7 @@ const TRUEMONEY_ENDPOINTS = {
 const DEFAULT_TOKENS = {
   balance: '5627a2c2088405f97c0608e09f827e2d',
   transactions: 'fa52cb89ccde1818855aad656cc20f8b',
-  transferSearch: '040a02532fa166412247a0a304c5bfbc'
+  transferSearch: 'cd58e01134106a58919ff1e89184cb4c' // Token ใหม่ที่ทดสอบสำเร็จ
 };
 
 const STORAGE_KEY = 'true-wallet-api-config';
@@ -277,41 +277,56 @@ export class TrueWalletService {
     try {
       console.log('🔍 เริ่มการค้นหาเบอร์โทรศัพท์:', phoneNumber);
       
-      // ใช้ Transactions API แทน Transfer Search API
-      const url = this.apiConfig.transactionsApiUrl || TRUEMONEY_ENDPOINTS.transactions;
-      const token = this.apiConfig.transactionsApiToken || DEFAULT_TOKENS.transactions;
+      // ใช้ Transfer Search API ด้วย parameters ที่ถูกต้อง
+      const url = this.apiConfig.transferSearchApiUrl || TRUEMONEY_ENDPOINTS.transferSearch;
+      const token = this.apiConfig.transferSearchApiToken || DEFAULT_TOKENS.transferSearch;
       
-      console.log('🔧 Search Transfers API Config:');
+      console.log('🔧 Transfer Search API Config:');
       console.log('  - URL:', url);
       console.log('  - Token:', token ? `${token.substring(0, 8)}...` : 'ไม่พบ');
-      console.log('  - ปลายทาง:', url === TRUEMONEY_ENDPOINTS.transactions ? '✅ Direct API call' : '🔧 Custom');
+      console.log('  - ปลายทาง:', url === TRUEMONEY_ENDPOINTS.transferSearch ? '✅ Transfer Search API' : '🔧 Custom');
+      
+      // Parameters สำหรับ Transfer Search API ที่ทดสอบสำเร็จแล้ว
+      const requestBody = {
+        type: 'P2P',  // ต้องเป็น "P2P" เท่านั้น
+        sender_mobile: phoneNumber,  // เบอร์โทรศัพท์ผู้ส่ง (10 หลัก)
+        quantity: 7  // จำนวนวันย้อนหลัง (1-180 วัน)
+      };
+      
+      console.log('📤 ส่ง request body:', JSON.stringify(requestBody, null, 2));
+      
       const response = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        console.error('❌ Transactions API Error:', {
+        console.error('❌ Transfer Search API Error:', {
           status: response.status,
           statusText: response.statusText,
           url: url,
-          phoneNumber: phoneNumber
+          phoneNumber: phoneNumber,
+          requestBody: requestBody
         });
         
         if (response.status === 401) {
-          throw new Error('🔐 Transactions API Token ไม่ถูกต้อง');
+          throw new Error('🔐 Transfer Search API Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('🔍 Transactions API URL ไม่พบ');
+          throw new Error('🔍 Transfer Search API URL ไม่พบ');
+        } else if (response.status === 429) {
+          throw new Error('⚠️ เรียกใช้งานมากเกินกว่าที่กำหนด (30 ครั้ง/30 วินาที)');
         } else {
-          throw new Error(`❌ Transactions API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ Transfer Search API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('📋 Transactions API Response:', result);
+      console.log('📋 Transfer Search API Response:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
       // ตรวจสอบ status
@@ -319,67 +334,49 @@ export class TrueWalletService {
         throw new Error(result.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
       }
 
-      // TrueMoney API returns: { status: "ok", data: { transactions: [...] } } หรือ { status: "ok", data: {...} }
+      // Transfer Search API returns: { status: "ok", data: { system_code: 1000, system_message: "Data retrieved completely.", transactions: [...] } }
       const apiData = result.data;
       
-      if (!apiData) {
-        console.log('❌ ไม่พบข้อมูลสำหรับเบอร์:', phoneNumber);
+      if (!apiData || !apiData.transactions) {
+        console.log('❌ ไม่พบข้อมูลธุรกรรมสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูล
       }
       
-      // Convert single transaction to array
-      const transactions = Array.isArray(apiData) ? apiData : [apiData];
+      // ตรวจสอบ system_code
+      if (apiData.system_code === 1000) {
+        console.log('✅ Data retrieved completely');
+      } else {
+        console.log('⚠️ System code:', apiData.system_code, '-', apiData.system_message);
+      }
       
-      // กรองธุรกรรมที่เกี่ยวข้องกับเบอร์ที่ค้นหา
-      const relevantTransactions = transactions.filter(item => {
-        const sender = item.sender_mobile || '';
-        const receiver = item.receiver_mobile || '';
-        return sender.includes(phoneNumber) || receiver.includes(phoneNumber);
-      });
+      const transactions = Array.isArray(apiData.transactions) ? apiData.transactions : [];
       
       console.log(`📊 พบธุรกรรมทั้งหมด: ${transactions.length} รายการ`);
-      console.log(`🎯 พบธุรกรรมที่เกี่ยวข้องกับ ${phoneNumber}: ${relevantTransactions.length} รายการ`);
+      console.log(`🎯 ธุรกรรมสำหรับเบอร์ ${phoneNumber} (ทั้งหมดเป็น sender_mobile): ${transactions.length} รายการ`);
       
-      if (relevantTransactions.length === 0) {
-        console.log(`🔍 ไม่พบธุรกรรมที่เกี่ยวข้องกับเบอร์ ${phoneNumber}`);
+      if (transactions.length === 0) {
+        console.log(`🔍 ไม่พบธุรกรรมสำหรับเบอร์ ${phoneNumber}`);
         return [];
       }
       
-      console.log('✅ พบรายการธุรกรรม', relevantTransactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);
+      console.log('✅ พบรายการธุรกรรม', transactions.length, 'รายการ สำหรับเบอร์:', phoneNumber);
       
-      const transfers = relevantTransactions.map((item: any, index: number) => {
+      const transfers = transactions.map((item: any, index: number) => {
           // Debug: ดูข้อมูล transaction แต่ละรายการ
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);
           
-          // จำนวนเงิน - แก้ไขการแปลงตัวเลข 000
+          // จำนวนเงิน - Transfer Search API ส่งเป็นสตางค์
           let amountValue = 0;
           
           if (item.amount !== undefined && item.amount !== null) {
-            // ถ้าเป็น number ใช้ตรงๆ
-            if (typeof item.amount === 'number' && !isNaN(item.amount)) {
-              if (item.amount > 0) {
-                amountValue = item.amount / 100.0; // แปลงจากสตางค์เป็นบาท
-              }
-            }
-            // ถ้าเป็น string ให้ลองแปลง
-            else if (typeof item.amount === 'string') {
-              // ลบเลข 0 ที่ไม่จำเป็น และแปลง
-              const cleanAmount = item.amount.replace(/[,\s]/g, '');
-              const parsedAmount = parseFloat(cleanAmount);
-              
-              if (!isNaN(parsedAmount) && parsedAmount > 0) {
-                // ถ้าเลขใหญ่เกินไป ให้คิดว่าเป็นสตางค์
-                if (parsedAmount > 1000) {
-                  amountValue = parsedAmount / 100.0;
-                } else {
-                  amountValue = parsedAmount;
-                }
-              }
+            const amountNum = parseFloat(item.amount.toString());
+            if (!isNaN(amountNum) && amountNum > 0) {
+              amountValue = amountNum / 100.0; // แปลงจากสตางค์เป็นบาท
             }
           }
           
-          // ข้อมูลผู้ส่งและผู้รับ - ใช้เบอร์โทรศัพท์
+          // ข้อมูลผู้ส่งและผู้รับ
           const fromName = item.sender_mobile || 'ไม่ระบุ';
           const toName = item.receiver_mobile || 'ไม่ระบุ';
           
@@ -395,7 +392,7 @@ export class TrueWalletService {
             reference: item.transaction_id || '',
             originalAmount: item.amount,
             searchTime: new Date().toISOString(),
-            eventType: item.event_type
+            eventType: item.event_type || 'P2P'
           };
 
           // Auto-save transaction history for each transfer found
@@ -404,7 +401,7 @@ export class TrueWalletService {
             amount: amountValue,
             transactionId: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
             transactionTime: item.received_time || new Date().toISOString(),
-            description: `รับเงินจากการค้นหาโอนเงิน - ${phoneNumber}`,
+            description: `รับเงินจากการค้นหาโอนเงิน - ${phoneNumber} (Transfer Search API)`,
             sourceType: 'transfer_search'
           };
           
@@ -435,13 +432,14 @@ export class TrueWalletService {
               source: 'searchTransfersByPhone',
               phoneNumber: phoneNumber,
               timestamp: new Date().toISOString(),
-              transfersFound: transfers.length
+              transfersFound: transfers.length,
+              apiUsed: 'Transfer Search API'
             }
           });
           window.dispatchEvent(event);
         }, 1000); // Wait 1 second for database to be updated
         
-        console.log('✅ การค้นหาเบอร์', phoneNumber, 'เสร็จสิ้น พบ', transfers.length, 'รายการ');
+        console.log('✅ การค้นหาเบอร์', phoneNumber, 'เสร็จสิ้น พบ', transfers.length, 'รายการ (ใช้ Transfer Search API)');
         return transfers;
       
     } catch (error) {

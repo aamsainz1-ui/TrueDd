@@ -171,26 +171,26 @@ export function TransactionHistoryReport() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex items-center space-x-2">
-            <TrendingUp className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">ประวัติรายการรับเงิน</h1>
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">ประวัติรายการรับเงิน</h1>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors text-xs sm:text-sm whitespace-nowrap min-h-[36px] sm:min-h-[40px] touch-manipulation"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
               <span>กรองข้อมูล</span>
             </button>
             <button
               onClick={refreshHistory}
               disabled={isLoading}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm whitespace-nowrap min-h-[36px] sm:min-h-[40px] touch-manipulation"
             >
-              <span className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}>↻</span>
+              <span className={`w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 ${isLoading ? 'animate-spin' : ''}`}>↻</span>
               <span>รีเฟรช</span>
             </button>
             <ClearHistoryButton 
@@ -205,9 +205,9 @@ export function TransactionHistoryReport() {
             <button
               onClick={exportToExcel}
               disabled={transactions.length === 0}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm whitespace-nowrap min-h-[36px] sm:min-h-[40px] touch-manipulation"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
               <span>ส่งออก Excel</span>
             </button>
           </div>
@@ -279,23 +279,23 @@ export function TransactionHistoryReport() {
 
         {/* Summary */}
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-primary/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-primary">{summary.totalTransactions}</div>
-              <div className="text-sm text-muted-foreground">จำนวนรายการทั้งหมด</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-primary/10 rounded-lg p-3 sm:p-4">
+              <div className="text-xl sm:text-2xl font-bold text-primary">{summary.totalTransactions}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">จำนวนรายการทั้งหมด</div>
             </div>
-            <div className="bg-success/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-success">฿{formatCurrency(summary.totalAmount)}</div>
-              <div className="text-sm text-muted-foreground">ยอดรวมทั้งหมด</div>
+            <div className="bg-success/10 rounded-lg p-3 sm:p-4">
+              <div className="text-xl sm:text-2xl font-bold text-success">฿{formatCurrency(summary.totalAmount)}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">ยอดรวมทั้งหมด</div>
             </div>
-            <div className="bg-accent/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-accent">
+            <div className="bg-accent/10 rounded-lg p-3 sm:p-4 sm:col-span-2 md:col-span-1">
+              <div className="text-xl sm:text-2xl font-bold text-accent">
                 {summary.dailyTotals.length > 0 ? 
                   new Date(summary.dailyTotals[0].date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }) : 
                   '-'
                 }
               </div>
-              <div className="text-sm text-muted-foreground">วันที่มีรายการล่าสุด</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">วันที่มีรายการล่าสุด</div>
             </div>
           </div>
         )}

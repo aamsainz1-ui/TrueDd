@@ -18,26 +18,38 @@ export const BalanceTrendChart: React.FC = () => {
     setError(null);
     
     try {
+      console.log('🔄 เริ่มดึงข้อมูล daily income...');
+      
       const response = await fetch(
         'https://kmloseczqatswwczqajs.supabase.co/functions/v1/daily-income-summary',
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I'
           }
         }
       );
 
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
+      console.log('📊 API Response:', result);
       
       if (result.success) {
+        console.log('✅ ข้อมูลที่ได้รับ:', result.data);
         setChartData(result.data);
       } else {
         throw new Error(result.error?.message || 'Failed to fetch data');
       }
     } catch (error) {
-      console.error('Error fetching daily income summary:', error);
-      setError('ไม่สามารถโหลดข้อมูลได้');
+      console.error('❌ Error fetching daily income summary:', error);
+      setError(`ไม่สามารถโหลดข้อมูลได้: ${error.message}`);
     } finally {
       setIsLoading(false);
     }

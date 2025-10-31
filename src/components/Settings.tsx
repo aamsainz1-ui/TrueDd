@@ -39,9 +39,9 @@ const defaultSupabase = {
 };
 
 const defaultTrueWallet = {
-  balanceApiToken: '',
-  transactionsApiToken: '',
-  transferSearchApiToken: ''
+  balanceApiToken: '5627a2c2088405f97c0608e09f827e2d',
+  transactionsApiToken: '', // ต้องการ token ใหม่สำหรับ transaction API
+  transferSearchApiToken: 'fa52cb89ccde1818855aad656cc20f8b'
 };
 
 const trueWalletUrls = {
@@ -365,6 +365,15 @@ export const Settings: React.FC = () => {
         {/* True Wallet API Settings */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-foreground mb-4">การตั้งค่า True Wallet API</h3>
+          
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-green-900 mb-2">✅ สถานะการทดสอบ API:</h4>
+            <ul className="text-sm text-green-800 space-y-1">
+              <li>✅ <strong>Balance API</strong>: ใช้ได้ - Token ถูกเติมให้แล้ว</li>
+              <li>✅ <strong>Transfer Search API</strong>: ใช้ได้ - Token ถูกเติมให้แล้ว</li>
+              <li>⚠️ <strong>Transaction API</strong>: ต้องการ Token ใหม่ - ยังไม่ทำงาน</li>
+            </ul>
+          </div>
           <div className="grid gap-4 sm:gap-6">
             <div className="space-y-4">
               <div>

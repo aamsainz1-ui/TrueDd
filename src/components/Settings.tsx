@@ -42,7 +42,7 @@ const defaultSupabase = {
 const defaultTrueWallet = {
   balanceApiToken: '5627a2c2088405f97c0608e09f827e2d',
   transactionsApiToken: 'fa52cb89ccde1818855aad656cc20f8b',
-  transferSearchApiToken: 'fa52cb89ccde1818855aad656cc20f8b' // อัปเดตใหม่ตามที่ผู้ใช้ร้องขอ
+  transferSearchApiToken: '040a02532fa166412247a0a304c5bfbc' // อัปเดต token ใหม่สำหรับ Search Transfer API
 };
 
 const trueWalletUrls = {

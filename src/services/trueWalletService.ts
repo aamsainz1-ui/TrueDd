@@ -528,6 +528,7 @@ export class TrueWalletService {
     };
   }> {
     try {
+      // ลองเรียกใช้ edge function ก่อน
       const params = new URLSearchParams();
       
       if (filters?.startDate) params.append('startDate', filters.startDate);
@@ -548,23 +549,132 @@ export class TrueWalletService {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Transaction history response:', result);
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
 
-      const result = await response.json();
-      console.log('Transaction history response:', result);
-      
-      if (result.error) {
-        throw new Error(result.error.message);
+        const data = result.data;
+        console.log('Transaction history data:', data);
+        
+        return data;
       }
-
-      const data = result.data;
-      console.log('Transaction history data:', data);
       
-      return data;
+      // ถ้า edge function ไม่ทำงาน ให้เรียกใช้ REST API โดยตรง
+      console.log('Edge function failed, falling back to direct REST API call');
+      return await this.getTransactionHistoryDirect(filters);
+      
     } catch (error) {
-      console.error('Failed to get transaction history:', error);
+      console.error('Failed to get transaction history via edge function, trying direct API:', error);
+      
+      // Fallback เรียกใช้ REST API โดยตรง
+      try {
+        return await this.getTransactionHistoryDirect(filters);
+      } catch (directError) {
+        console.error('Failed to get transaction history via direct API:', directError);
+        throw new Error('ไม่สามารถดึงข้อมูลประวัติรายการได้');
+      }
+    }
+  }
+
+  async getTransactionHistoryDirect(filters?: {
+    startDate?: string;
+    endDate?: string;
+    phoneNumber?: string;
+    limit?: number;
+  }): Promise<{
+    transactions: any[];
+    summary: {
+      totalTransactions: number;
+      totalAmount: number;
+      dailyTotals: Array<{ date: string; total: number; count: number }>;
+    };
+  }> {
+    try {
+      // Build query parameters for transactions table
+      let queryParams = `select=*&order=date.desc,created_at.desc&limit=${filters?.limit || 50}`;
+      
+      // Add filters
+      const apiFilters = [];
+      
+      if (filters?.startDate) {
+        apiFilters.push(`date.gte.${filters.startDate}`);
+      }
+      
+      if (filters?.endDate) {
+        apiFilters.push(`date.lte.${filters.endDate}`);
+      }
+      
+      if (apiFilters.length > 0) {
+        queryParams += '&' + apiFilters.join('&');
+      }
+
+      console.log('Fetching from direct REST API:', queryParams);
+      
+      const response = await fetch(`${this.supabaseUrl}/rest/v1/transactions?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'apikey': this.supabaseKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Database fetch error: ${response.status} ${errorText}`);
+      }
+
+      const transactions = await response.json();
+      console.log('Direct API transactions response:', transactions);
+
+      // Transform transactions data to match expected format
+      const transformedTransactions = transactions.map((transaction: any) => ({
+        id: transaction.id,
+        created_at: transaction.created_at,
+        transaction_date: transaction.date,
+        transaction_time: transaction.created_at ? new Date(transaction.created_at).toTimeString().split(' ')[0] : '00:00:00',
+        phone_number: 'ไม่ระบุ', // Not available in current schema
+        amount: parseFloat(transaction.amount),
+        transaction_id: `TXN${transaction.id}`,
+        status: 'completed',
+        description: transaction.description,
+        source_type: 'dashboard_transactions'
+      }));
+
+      // Calculate summary statistics
+      const totalAmount = transformedTransactions.reduce((sum: number, transaction: any) => sum + transaction.amount, 0);
+      const dailyTotals = transformedTransactions.reduce((acc: any, transaction: any) => {
+        const date = transaction.transaction_date;
+        if (!acc[date]) {
+          acc[date] = { total: 0, count: 0 };
+        }
+        acc[date].total += transaction.amount;
+        acc[date].count += 1;
+        return acc;
+      }, {});
+
+      const summary = {
+        totalTransactions: transformedTransactions.length,
+        totalAmount: totalAmount,
+        dailyTotals: Object.keys(dailyTotals).map(date => ({
+          date,
+          total: dailyTotals[date].total,
+          count: dailyTotals[date].count
+        })).sort((a, b) => b.date.localeCompare(a.date))
+      };
+
+      console.log(`Direct API: Retrieved ${transformedTransactions.length} transaction records`);
+
+      return {
+        transactions: transformedTransactions,
+        summary
+      };
+    } catch (error) {
+      console.error('Failed to get transaction history direct:', error);
       throw error;
     }
   }

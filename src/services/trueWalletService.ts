@@ -632,18 +632,47 @@ export class TrueWalletService {
       console.log('Direct API transactions response:', transactions);
 
       // Transform transactions data to match expected format
-      const transformedTransactions = transactions.map((transaction: any) => ({
-        id: transaction.id,
-        created_at: transaction.created_at,
-        transaction_date: transaction.date,
-        transaction_time: transaction.created_at ? new Date(transaction.created_at).toTimeString().split(' ')[0] : '00:00:00',
-        phone_number: 'ไม่ระบุ', // Not available in current schema
-        amount: parseFloat(transaction.amount),
-        transaction_id: `TXN${transaction.id}`,
-        status: 'completed',
-        description: transaction.description,
-        source_type: 'dashboard_transactions'
-      }));
+      const transformedTransactions = transactions.map((transaction: any) => {
+        // แยกเบอร์โทรศัพท์จากคำอธิบาย
+        const extractPhoneFromDescription = (description: string) => {
+          if (!description) return 'ไม่ระบุ';
+          
+          // หาเบอร์โทรศัพท์ที่ขึ้นต้นด้วย 0 และมี 10 หลัก
+          const phoneMatch = description.match(/(\d{10})/);
+          if (phoneMatch) {
+            return phoneMatch[1];
+          }
+          
+          // ถ้าไม่มีเบอร์โทรศัพท์ ให้ดูจากคำอธิบายเพื่อกำหนดแหล่งที่มา
+          if (description.includes('เงินเดือน')) {
+            return 'เงินเดือน';
+          }
+          if (description.includes('ค่าคอมพิวเตอร์')) {
+            return 'ค่าบริการ';
+          }
+          if (description.includes('ทดสอบ')) {
+            return 'ระบบทดสอบ';
+          }
+          if (description.includes('รับเงินจาก')) {
+            return 'รับโอนเงิน';
+          }
+          
+          return 'ไม่ระบุ';
+        };
+
+        return {
+          id: transaction.id,
+          created_at: transaction.created_at,
+          transaction_date: transaction.date,
+          transaction_time: transaction.created_at ? new Date(transaction.created_at).toTimeString().split(' ')[0] : '00:00:00',
+          phone_number: extractPhoneFromDescription(transaction.description),
+          amount: parseFloat(transaction.amount),
+          transaction_id: `TXN${transaction.id}`,
+          status: 'completed',
+          description: transaction.description,
+          source_type: 'dashboard_transactions'
+        };
+      });
 
       // Calculate summary statistics
       const totalAmount = transformedTransactions.reduce((sum: number, transaction: any) => sum + transaction.amount, 0);

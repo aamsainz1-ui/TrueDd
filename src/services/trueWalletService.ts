@@ -142,17 +142,19 @@ export class TrueWalletService {
         throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
       
-      const balanceInBaht = parseFloat(result.data.balance || 0);
+      const balanceInSatang = parseFloat(result.data.balance || 0);
+      const balanceInBaht = balanceInSatang / 100; // แปลงจากสตางค์เป็นบาท
       
       console.log('💰 Balance ข้อมูลที่แปลงแล้ว:');
-      console.log(`  - ยอดเงิน: ${balanceInBaht.toLocaleString()} THB`);
+      console.log(`  - ยอดเงิน (สตางค์): ${balanceInSatang.toLocaleString()}`);
+      console.log(`  - ยอดเงิน (บาท): ${balanceInBaht.toLocaleString()} THB`);
       console.log(`  - เบอร์โทรศัพท์: ${result.data.mobile_no || 'ไม่ระบุ'}`);
       console.log(`  - อัพเดทล่าสุด: ${result.data.updated_at || 'ไม่ทราบ'}`);
       console.log(`  - สกุลเงิน: THB`);
       console.log(`  - ผ่าน: ✅ TrueMoney API`);
       
       return {
-        currentBalance: balanceInBaht, // TrueMoney API ส่งเป็นบาทอยู่แล้ว
+        currentBalance: balanceInBaht, // แปลงจากสตางค์เป็นบาท
         currency: 'THB',
         timestamp: result.data.updated_at || new Date().toISOString(),
       };
@@ -278,14 +280,20 @@ export class TrueWalletService {
       console.log('  - API URL:', searchApiUrl);
       console.log('  - ปลายทาง: ✅ TrueMoney Transfer Search API');
 
-      // Parameters สำหรับ Transfer Search API ที่ทดสอบสำเร็จแล้ว
-      const requestBody = {
-        phoneNumber: phoneNumber,  // เบอร์โทรศัพท์ผู้ส่ง (10 หลัก)
-        amount: amount // จำนวนเงิน (ถ้ามี)
+      // Parameters สำหรับ TrueMoney Transfer Search API (ตามรูปที่ผู้ใช้ให้มา)
+      const requestBody: any = {
+        sender_mobile: phoneNumber,  // เบอร์โทรศัพท์ผู้ส่ง (10 หลัก)
+        type: 'P2P',  // ประเภทการโอน (ต้องเป็น P2P)
+        quantity: 30  // จำนวนวันย้อนหลัง (1-180 วัน)
       };
       
+      // ถ้ามี amount ให้เพิ่มใน request แต่เป็น optional
+      if (amount) {
+        requestBody.amount = amount;
+      }
+      
       console.log('📤 ส่ง request body:', JSON.stringify(requestBody, null, 2));
-      console.log('🔑 ใช้ token ที่กำหนดไว้ใน Edge Function');
+      console.log('🔑 ใช้ TrueMoney Transfer Search API Token');
       
       // เรียก Supabase Edge Function พร้อม timeout
       const controller = new AbortController();
@@ -316,16 +324,16 @@ export class TrueWalletService {
         if (response.status === 401) {
           throw new Error('Transfer Search Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Transfer Search API ไม่พบ');
+          throw new Error(`ไม่พบรายการโอนเงินสำหรับเบอร์ ${phoneNumber} (Error 404)`);
         } else if (response.status === 429) {
           throw new Error('⚠️ เรียกใช้งานมากเกินกว่าที่กำหนด (30 ครั้ง/30 วินาที)');
         } else {
-          throw new Error(`❌ Supabase Edge Function Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ TrueMoney API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('📋 Transfer Search API Response ผ่าน Supabase:', result);
+      console.log('📋 Transfer Search API Response:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
       // ตรวจสอบ error จาก TrueMoney API
@@ -364,13 +372,13 @@ export class TrueWalletService {
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);
           
-          // จำนวนเงิน - Transfer Search API ส่งเป็นสตางค์
+          // จำนวนเงิน - Transfer Search API ส่งเป็นบาท
           let amountValue = 0;
           
           if (item.amount !== undefined && item.amount !== null) {
             const amountNum = parseFloat(item.amount.toString());
             if (!isNaN(amountNum) && amountNum > 0) {
-              amountValue = amountNum / 100.0; // แปลงจากสตางค์เป็นบาท
+              amountValue = amountNum; // Transfer Search API ส่งเป็นบาทอยู่แล้ว
             }
           }
           

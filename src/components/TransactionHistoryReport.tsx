@@ -206,7 +206,7 @@ export function TransactionHistoryReport() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
@@ -357,7 +357,7 @@ export function TransactionHistoryReport() {
 
       {/* Daily Totals */}
       {summary && summary.dailyTotals.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-bold mb-4">สรุปยอดรับเงินรายวัน</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {summary.dailyTotals.slice(0, 6).map((day) => (
@@ -371,9 +371,9 @@ export function TransactionHistoryReport() {
         </div>
       )}
 
-      {/* Transaction List */}
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">รายการรับเงินทั้งหมด</h2>
+      {/* Transaction List - Card Layout with Gray Background */}
+      <div className="bg-gray-50 rounded-xl shadow-sm p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-900">รายการรับเงินทั้งหมด</h2>
         
         {isLoading ? (
           <div className="text-center py-8">
@@ -395,35 +395,54 @@ export function TransactionHistoryReport() {
             ไม่พบข้อมูลประวัติรายการรับเงิน
           </div>
         ) : (
-          <div className="max-h-[500px] sm:max-h-[600px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
+          <div className="max-h-[500px] sm:max-h-[600px] overflow-y-auto custom-scrollbar-green space-y-3 sm:space-y-4 pr-1">
             {transactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between p-3 sm:p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors gap-2"
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-4"
               >
-                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
-                  <div className="p-1.5 sm:p-2 rounded-full bg-success/10 text-success flex-shrink-0">
-                    <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-foreground text-sm sm:text-base truncate">{transaction.phone_number}</p>
-                    <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
-                      <span className="truncate">{formatDateTime(transaction.transaction_date, transaction.transaction_time)}</span>
+                <div className="flex items-start justify-between gap-3">
+                  {/* Left side - Icon and Details */}
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {/* Phone Icon */}
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    {transaction.description && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">{transaction.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground truncate">
-                      เลขอ้างอิง: {transaction.transaction_id}
-                    </p>
+                    
+                    {/* Transaction Details */}
+                    <div className="min-w-0 flex-1">
+                      {/* Phone Number / Title */}
+                      <p className="font-bold text-gray-900 text-base sm:text-lg mb-1">
+                        {transaction.phone_number}
+                      </p>
+                      
+                      {/* Date and Time */}
+                      <div className="flex items-center gap-1.5 text-gray-500 text-sm mb-1.5">
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>{formatDateTime(transaction.transaction_date, transaction.transaction_time)}</span>
+                      </div>
+                      
+                      {/* Description */}
+                      {transaction.description && (
+                        <p className="text-sm text-gray-700 mb-1">
+                          {transaction.description}
+                        </p>
+                      )}
+                      
+                      {/* Reference Code */}
+                      <p className="text-sm text-gray-600">
+                        เลขอ้างอิง: {transaction.transaction_id}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-bold text-base sm:text-lg text-success">
-                    +฿{formatCurrency(transaction.amount)}
-                  </p>
-                  <p className="text-xs text-success">สำเร็จ</p>
+                  
+                  {/* Right side - Amount and Status */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-xl sm:text-2xl text-green-600 mb-1">
+                      +฿{formatCurrency(transaction.amount)}
+                    </p>
+                    <p className="text-sm text-gray-500">สำเร็จ</p>
+                  </div>
                 </div>
               </div>
             ))}

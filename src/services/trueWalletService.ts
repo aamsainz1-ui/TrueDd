@@ -130,19 +130,6 @@ export class TrueWalletService {
 
       const result = await response.json();
       console.log('📋 Balance API Response ผ่าน Supabase:', result);
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Balance Token ไม่ถูกต้อง');
-        } else if (response.status === 404) {
-          throw new Error('Balance API ไม่พบ');
-        } else {
-          throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
-        }
-      }
-
-      const result = await response.json();
-      console.log('📋 Balance API Response:', result);
       
       // ตรวจสอบ error จาก TrueMoney API
       if (result.error) {

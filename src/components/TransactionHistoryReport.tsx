@@ -31,7 +31,7 @@ export function TransactionHistoryReport() {
     startDate: '',
     endDate: '',
     phoneNumber: '',
-    limit: 10000
+    limit: 999999
   });
   const [showFilters, setShowFilters] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -165,7 +165,7 @@ export function TransactionHistoryReport() {
       startDate: '',
       endDate: '',
       phoneNumber: '',
-      limit: 10000
+      limit: 999999
     });
   };
 
@@ -289,12 +289,12 @@ export function TransactionHistoryReport() {
                   onChange={(e) => setFilters(prev => ({ ...prev, limit: parseInt(e.target.value) }))}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
+                  <option value={999999}>ทั้งหมด (ไม่จำกัด)</option>
                   <option value={50}>50 รายการ</option>
                   <option value={100}>100 รายการ</option>
                   <option value={200}>200 รายการ</option>
                   <option value={500}>500 รายการ</option>
                   <option value={1000}>1,000 รายการ</option>
-                  <option value={10000}>ทั้งหมด</option>
                 </select>
               </div>
             </div>

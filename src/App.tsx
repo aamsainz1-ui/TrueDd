@@ -9,7 +9,7 @@ import { APIStatus } from './components/APIStatus';
 import { CORSErrorMessage, MockDataFallback } from './components/CORSErrorMessage';
 import { Settings } from './components/Settings';
 import { DailyExportSettings } from './components/DailyExportSettings';
-import { BalanceTrendChart } from './components/BalanceTrendChart';
+import { DailyIncomeChart } from './components/DailyIncomeChart';
 import { trueWalletService } from './services/trueWalletService';
 import type { BalanceData, Transaction } from './types';
 

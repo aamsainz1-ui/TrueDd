@@ -1,183 +1,141 @@
-// Edge Function สำหรับดึงประวัติรายการรับเงินพร้อมสรุปยอดรายวัน
-
 Deno.serve(async (req) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Max-Age': '86400',
-  };
-
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
-  }
-
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    // Parse query parameters
-    const url = new URL(req.url);
-    const startDate = url.searchParams.get('startDate');
-    const endDate = url.searchParams.get('endDate');
-    const phoneNumber = url.searchParams.get('phoneNumber');
-    const limit = parseInt(url.searchParams.get('limit') || '100');
-
-    console.log('Get transaction history with filters:', { startDate, endDate, phoneNumber, limit });
-
-    // Build query conditions
-    let queryConditions = [];
-    let queryParams: any[] = [];
-
-    // กรองเฉพาะ recent_transactions เท่านั้น (ไม่รวม transfer_search)
-    queryConditions.push('source_type = $' + (queryParams.length + 1));
-    queryParams.push('recent_transactions');
-
-    if (startDate) {
-      queryConditions.push('transaction_date >= $' + (queryParams.length + 1));
-      queryParams.push(startDate);
-    }
-
-    if (endDate) {
-      queryConditions.push('transaction_date <= $' + (queryParams.length + 1));
-      queryParams.push(endDate);
-    }
-
-    if (phoneNumber) {
-      queryConditions.push('phone_number ILIKE $' + (queryParams.length + 1));
-      queryParams.push(`%${phoneNumber}%`);
-    }
-
-    const whereClause = queryConditions.length > 0 ? 'WHERE ' + queryConditions.join(' AND ') : '';
-
-    // Get transactions with filters
-    const transactionsQuery = `
-      SELECT * FROM transaction_history 
-      ${whereClause}
-      ORDER BY transaction_date DESC, transaction_time DESC 
-      LIMIT $${queryParams.length + 1}
-    `;
-    
-    queryParams.push(limit);
-
-    console.log('Executing transactions query:', transactionsQuery);
-    console.log('Query params:', queryParams);
-
-    const transactionsResponse = await fetch(
-      `${supabaseUrl}/rest/v1/rpc/exec_sql`,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: transactionsQuery,
-          params: queryParams
-        }),
-      }
-    );
-
-    if (!transactionsResponse.ok) {
-      // Fallback to direct table query if RPC fails
-      console.log('RPC failed, using direct table query');
-      
-      let directUrl = `${supabaseUrl}/rest/v1/transaction_history?select=*`;
-      
-      // กรองเฉพาะ recent_transactions เท่านั้น
-      directUrl += `&source_type=eq.recent_transactions`;
-      
-      if (startDate) directUrl += `&transaction_date=gte.${startDate}`;
-      if (endDate) directUrl += `&transaction_date=lte.${endDate}`;
-      if (phoneNumber) directUrl += `&phone_number=ilike.%${phoneNumber}%`;
-      
-      directUrl += `&order=transaction_date.desc,transaction_time.desc&limit=${limit}`;
-
-      const directResponse = await fetch(directUrl, {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!directResponse.ok) {
-        throw new Error(`Failed to fetch transactions: ${directResponse.statusText}`);
-      }
-
-      var transactions = await directResponse.json();
-    } else {
-      const result = await transactionsResponse.json();
-      transactions = result.data || result;
-    }
-
-    console.log(`Found ${transactions.length} transactions`);
-
-    // Calculate summary
-    const totalTransactions = transactions.length;
-    const totalAmount = transactions.reduce((sum: number, tx: any) => {
-      return sum + parseFloat(tx.amount || 0);
-    }, 0);
-
-    // Calculate daily totals
-    const dailyTotalsMap = new Map();
-    
-    transactions.forEach((tx: any) => {
-      const date = tx.transaction_date;
-      if (!dailyTotalsMap.has(date)) {
-        dailyTotalsMap.set(date, { date, total: 0, count: 0 });
-      }
-      
-      const dayData = dailyTotalsMap.get(date);
-      dayData.total += parseFloat(tx.amount || 0);
-      dayData.count += 1;
-    });
-
-    // Convert to array and sort by date (newest first)
-    const dailyTotals = Array.from(dailyTotalsMap.values())
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 10); // Show last 10 days with data
-
-    console.log('Daily totals calculated:', dailyTotals);
-
-    const summary = {
-      totalTransactions,
-      totalAmount,
-      dailyTotals
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Credentials': 'false'
     };
 
-    console.log('Final summary:', summary);
+    if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 200, headers: corsHeaders });
+    }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: {
-          transactions,
-          summary
+    try {
+        // Parse query parameters for filtering
+        const url = new URL(req.url);
+        const limit = url.searchParams.get('limit'); // ไม่กำหนด default เพื่อให้ดึงข้อมูลทั้งหมด
+        const startDate = url.searchParams.get('startDate');
+        const endDate = url.searchParams.get('endDate');
+        const phoneNumber = url.searchParams.get('phoneNumber');
+
+        // Get Supabase configuration from environment
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Supabase configuration missing');
         }
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
 
-  } catch (error) {
-    console.error('Get transaction history error:', error);
-    
-    return new Response(
-      JSON.stringify({
-        error: {
-          code: 'GET_HISTORY_ERROR',
-          message: error.message || 'เกิดข้อผิดพลาดในการดึงประวัติรายการรับเงิน',
-        },
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-  }
+        // Build query parameters for transaction_history table
+        let queryParams = `select=*&order=created_at.desc`;
+        
+        // เพิ่ม limit เฉพาะเมื่อผู้ใช้ระบุชัดเจน
+        if (limit) {
+            queryParams += `&limit=${limit}`;
+        }
+        
+        // Add filters
+        const filters = [];
+        
+        if (startDate) {
+            filters.push(`transaction_date.gte.${startDate}`);
+        }
+        
+        if (endDate) {
+            filters.push(`transaction_date.lte.${endDate}`);
+        }
+        
+        if (phoneNumber) {
+            filters.push(`phone_number.ilike.*${phoneNumber}*`);
+        }
+
+        if (filters.length > 0) {
+            queryParams += '&' + filters.join('&');
+        }
+
+        // Fetch transaction history from database
+        const fetchResponse = await fetch(`${supabaseUrl}/rest/v1/transaction_history?${queryParams}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'apikey': supabaseKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!fetchResponse.ok) {
+            const errorText = await fetchResponse.text();
+            console.error('Database fetch error:', errorText);
+            throw new Error(`เกิดข้อผิดพลาดในการดึงข้อมูล: ${fetchResponse.status}`);
+        }
+
+        const transactions = await fetchResponse.json();
+
+        // Transform transactions data to match expected format
+        const transformedTransactions = transactions.map((transaction: any) => {
+            return {
+                id: transaction.id,
+                created_at: transaction.created_at,
+                transaction_date: transaction.transaction_date,
+                transaction_time: transaction.transaction_time || '00:00:00',
+                phone_number: transaction.phone_number || 'ไม่ระบุ',
+                amount: parseFloat(transaction.amount || 0),
+                transaction_id: transaction.transaction_id || `TXN${transaction.id}`,
+                status: transaction.status || 'completed',
+                description: transaction.description || '',
+                source_type: transaction.source_type || 'dashboard_transactions'
+            };
+        });
+
+        // Calculate summary statistics
+        const totalAmount = transformedTransactions.reduce((sum: number, transaction: any) => sum + transaction.amount, 0);
+        const dailyTotals = transformedTransactions.reduce((acc: any, transaction: any) => {
+            const date = transaction.transaction_date;
+            if (!acc[date]) {
+                acc[date] = { total: 0, count: 0 };
+            }
+            acc[date].total += transaction.amount;
+            acc[date].count += 1;
+            return acc;
+        }, {});
+
+        const summary = {
+            totalTransactions: transformedTransactions.length,
+            totalAmount: totalAmount,
+            dailyTotals: Object.keys(dailyTotals).map(date => ({
+                date,
+                total: dailyTotals[date].total,
+                count: dailyTotals[date].count
+            })).sort((a, b) => b.date.localeCompare(a.date))
+        };
+
+        console.log(`Retrieved ${transformedTransactions.length} transaction records`);
+
+        return new Response(JSON.stringify({ 
+            success: true,
+            data: {
+                transactions: transformedTransactions,
+                summary
+            },
+            timestamp: new Date().toISOString()
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+    } catch (error) {
+        console.error('Get transaction history error:', error);
+
+        const errorResponse = {
+            error: {
+                code: 'GET_TRANSACTION_HISTORY_FAILED',
+                message: error.message
+            }
+        };
+
+        return new Response(JSON.stringify(errorResponse), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
 });

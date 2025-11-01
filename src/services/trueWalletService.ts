@@ -199,17 +199,15 @@ export class TrueWalletService {
         throw new Error(result.error.message || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
       }
       
-      // TrueMoney API returns: { data: { balance: "70000.00", mobile_no: "...", updated_at: "..." } }
+      // TrueMoney API returns: { data: { balance: "700.00", mobile_no: "...", updated_at: "..." } }
       if (!result.data || !result.data.balance) {
         console.error('❌ ไม่พบข้อมูล balance ใน response:', result);
         throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
       
-      const balanceInSatang = parseFloat(result.data.balance || 0);
-      const balanceInBaht = balanceInSatang / 100; // แปลงจากสตางค์เป็นบาท
+      const balanceInBaht = parseFloat(result.data.balance || 0); // API ส่งข้อมูลมาเป็นบาทแล้ว
       
       console.log('💰 Balance ข้อมูลที่แปลงแล้ว:');
-      console.log(`  - ยอดเงิน (สตางค์): ${balanceInSatang.toLocaleString()}`);
       console.log(`  - ยอดเงิน (บาท): ${balanceInBaht.toLocaleString()} THB`);
       console.log(`  - เบอร์โทรศัพท์: ${result.data.mobile_no || 'ไม่ระบุ'}`);
       console.log(`  - อัพเดทล่าสุด: ${result.data.updated_at || 'ไม่ทราบ'}`);
@@ -217,7 +215,7 @@ export class TrueWalletService {
       console.log(`  - ผ่าน: ✅ Supabase Edge Function → TrueMoney API`);
       
       return {
-        currentBalance: balanceInBaht, // แปลงจากสตางค์เป็นบาท
+        currentBalance: balanceInBaht, // ใช้ค่าเป็นบาทโดยตรง
         currency: 'THB',
         timestamp: result.data.updated_at || new Date().toISOString(),
       };
@@ -396,8 +394,8 @@ export class TrueWalletService {
       }
       
       if (amount) {
-        // ถ้ามี amount ให้ค้นหาด้วย amount (แปลงจากบาทเป็นสตางค์)
-        requestBody.amount = Math.round(amount * 100);
+        // ถ้ามี amount ให้ค้นหาด้วย amount (ใช้ค่าเป็นบาทโดยตรง - API ส่งข้อมูลมาเป็นบาท)
+        requestBody.amount = amount;
       }
       
       // ถ้าไม่มี sender_mobile ให้ throw error

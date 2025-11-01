@@ -11,21 +11,24 @@ const TRUEMONEY_ENDPOINTS = {
   transferSearch: 'https://apis.truemoneyservices.com/account/v1/my-receive'
 };
 
-// Tokens ที่ทดสอบแล้ว (เป็นค่าเริ่มต้น)
-const DEFAULT_TOKENS = {
-  balance: '5627a2c2088405f97c0608e09f827e2d',
-  transactions: 'fa52cb89ccde1818855aad656cc20f8b',
-  transferSearch: 'cd58e01134106a58919ff1e89184cb4c' // Token ใหม่ที่ทดสอบสำเร็จ
-};
-
-const STORAGE_KEY = 'true-wallet-api-config';
+const STORAGE_KEY = 'walletConfig';
 
 interface APIConfig {
+  supabaseUrl: string;
+  supabaseAnonKey: string;
   balanceApiUrl: string;
   balanceApiToken: string;
   transactionsApiUrl: string;
   transactionsApiToken: string;
   transferSearchApiUrl: string;
+  transferSearchApiToken: string;
+}
+
+interface SettingsConfig {
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  balanceApiToken: string;
+  transactionsApiToken: string;
   transferSearchApiToken: string;
 }
 
@@ -35,9 +38,29 @@ export class TrueWalletService {
   private apiConfig: APIConfig;
 
   constructor() {
-    this.supabaseUrl = SUPABASE_URL;
-    this.supabaseKey = SUPABASE_ANON_KEY;
-    this.apiConfig = this.loadApiConfig();
+    // โหลด config จาก Settings ที่ผู้ใช้ตั้งค่า
+    const settingsConfig = this.loadSettingsConfig();
+    this.supabaseUrl = settingsConfig.supabaseUrl || DEFAULT_SUPABASE_URL;
+    this.supabaseKey = settingsConfig.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
+    
+    // โหลด API config
+    try {
+      this.apiConfig = this.loadApiConfig();
+      console.log('✅ โหลด API config จาก Settings สำเร็จ');
+    } catch (error) {
+      console.warn('⚠️ ไม่สามารถโหลด API config จาก Settings:', error.message);
+      // สร้าง config เปล่าเพื่อป้องกัน error
+      this.apiConfig = {
+        supabaseUrl: this.supabaseUrl,
+        supabaseAnonKey: this.supabaseKey,
+        balanceApiUrl: TRUEMONEY_ENDPOINTS.balance,
+        balanceApiToken: '',
+        transactionsApiUrl: TRUEMONEY_ENDPOINTS.transactions,
+        transactionsApiToken: '',
+        transferSearchApiUrl: TRUEMONEY_ENDPOINTS.transferSearch,
+        transferSearchApiToken: ''
+      };
+    }
     
     // Listen for config updates
     window.addEventListener('api-config-updated', ((event: CustomEvent) => {

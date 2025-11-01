@@ -455,7 +455,39 @@ export class TrueWalletService {
       console.log(`  - ผ่าน: ✅ เรียก API โดยตรง`);
       
       if (transactions.length === 0) {
-        console.log(`🔍 ไม่พบธุรกรรมสำหรับเบอร์ ${phoneNumber}`);
+        console.log(`🔍 ไม่พบธุรกรรมจาก API สำหรับเบอร์ ${phoneNumber}, กำลังค้นหาจากฐานข้อมูล local...`);
+        
+        // ค้นหาข้อมูลจากฐานข้อมูล local
+        try {
+          const localTransactions = await this.getTransactionHistory();
+          const phoneTransactions = localTransactions.filter(tx => 
+            tx.phone_number === phoneNumber || tx.sender === phoneNumber
+          );
+          
+          if (phoneTransactions.length > 0) {
+            console.log(`✅ พบข้อมูลในฐานข้อมูล local: ${phoneTransactions.length} รายการ`);
+            
+            const localTransfers = phoneTransactions.map((item, index) => ({
+              id: item.transaction_id || `LOCAL${String(index + 1).padStart(3, '0')}`,
+              fromName: item.phone_number || item.sender || 'ไม่ระบุ',
+              toName: 'ผู้รับ',
+              amount: parseFloat(item.amount) || 0,
+              datetime: item.created_at || new Date().toISOString(),
+              status: 'completed' as const,
+              reference: item.transaction_id || '',
+              originalAmount: parseFloat(item.amount) || 0,
+              searchTime: new Date().toISOString(),
+              eventType: 'P2P',
+              source: 'local_database'
+            }));
+            
+            return localTransfers;
+          }
+        } catch (localError) {
+          console.warn('⚠️ ไม่สามารถค้นหาข้อมูลจากฐานข้อมูล local:', localError.message);
+        }
+        
+        console.log(`🔍 ไม่พบธุรกรรมสำหรับเบอร์ ${phoneNumber} ใน API หรือฐานข้อมูล`);
         return [];
       }
       

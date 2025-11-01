@@ -152,6 +152,19 @@ function App() {
         await Promise.race([fetchAllData(), timeoutPromise]);
         console.log('✅ โหลดข้อมูลเสร็จสิ้น');
         
+        // ทดสอบ Transfer Search อัตโนมัติด้วยเบอร์ 0810608153
+        console.log('🔍 ทดสอบ Transfer Search ด้วยเบอร์ 0810608153...');
+        try {
+          const transferResults = await trueWalletService.searchTransfersByPhone('0810608153');
+          console.log(`✅ Transfer Search ผลลัพธ์: ${transferResults.length} รายการ`);
+          if (transferResults.length > 0) {
+            toast.success(`🔍 พบข้อมูล Transfer: ${transferResults.length} รายการ จาก 0810608153`);
+          }
+        } catch (transferError) {
+          console.warn('⚠️ Transfer Search error:', transferError);
+          toast.warning('🔍 Transfer Search ไม่พบข้อมูลสำหรับเบอร์ 0810608153');
+        }
+        
       } catch (error) {
         console.error('❌ เกิดข้อผิดพลาดในการโหลดครั้งแรก:', error);
         // แสดง toast แจ้งข้อผิดพลาดและขอให้ผู้ใช้ลองใหม่

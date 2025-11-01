@@ -37,13 +37,12 @@ export function TransactionHistoryReport() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const formatCurrency = (amount: number) => {
-    // แปลงเป็นจำนวนเต็มถ้าไม่มีทศนิยม
-    const roundedAmount = Math.round(amount);
+    // แสดงจำนวนเงินเป็นบาทพร้อมทศนิยม 2 ตำแหน่ง
     return new Intl.NumberFormat('th-TH', {
       style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(roundedAmount);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
   };
 
   // ค้นหายอดรวมของวันนี้

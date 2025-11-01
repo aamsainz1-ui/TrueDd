@@ -537,10 +537,8 @@ export class TrueWalletService {
             transactionId: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
             description: `ผลการค้นหาโอนเงิน - ${phoneNumber} (Transfer Search API)`
           });
-          }).catch(error => {
-            console.warn(`⚠️ Failed to auto-save transfer history ${index + 1} (ไม่กระทบผลการค้นหา):`, error.message);
-            // ไม่ throw error เพื่อไม่ให้หยุดการแสดงผลหลัก
-          });
+
+          return transfer;
 
           return transfer;
         });

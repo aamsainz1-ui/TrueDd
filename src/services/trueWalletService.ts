@@ -347,7 +347,7 @@ export class TrueWalletService {
         // Auto-save transaction history for each recent transaction (ไม่ทำให้ main process หยุดทำงาน)
         this.saveTransactionHistory({
           phoneNumber: senderMobile || '',
-          amount: amountValue,
+          amount: amountInBaht,
           transactionId: transactionId,
           transactionTime: receivedTime,
           description: `รับเงินรายการล่าสุด - ${eventType === 'P2P' ? 'รับโอนเงิน' : 'รายการรับเงิน'}`,
@@ -483,7 +483,7 @@ export class TrueWalletService {
           const fromName = item.sender_mobile || 'ไม่ระบุ';
           const toName = item.receiver_mobile || 'ไม่ระบุ';
           
-          console.log(`Transaction ${index}: from=${fromName}, to=${toName}, amount=${item.amount} -> ${amountValue} baht`);
+          console.log(`Transaction ${index}: from=${fromName}, to=${toName}, amount=${item.amount} -> ${amountInBaht} baht`);
           
           const transfer: TransferHistory = {
             id: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,

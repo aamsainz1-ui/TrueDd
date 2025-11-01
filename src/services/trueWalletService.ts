@@ -8,7 +8,7 @@ const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 const TRUEMONEY_ENDPOINTS = {
   balance: 'https://apis.truemoneyservices.com/account/v1/balance',
   transactions: 'https://apis.truemoneyservices.com/account/v1/my-last-receive',
-  transferSearch: 'https://dltmbajfuvbnipnfvcrl.supabase.co/functions/v1/true-wallet-transfer-search'
+  transferSearch: '/functions/v1/true-wallet-transfer-search'
 };
 
 const STORAGE_KEY = 'walletConfig';

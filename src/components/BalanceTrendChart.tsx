@@ -24,13 +24,13 @@ export const BalanceTrendChart: React.FC = () => {
       console.log('เริ่มดึงข้อมูล daily income...');
       
       const response = await fetch(
-        'https://kmloseczqatswwczqajs.supabase.co/functions/v1/daily-income-summary',
+        'https://dltmbajfuvbnipnfvcrl.supabase.co/functions/v1/daily-income-summary',
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbG9zZWN6cWF0c3d3Y3pxYWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjQyMzAsImV4cCI6MjA3NzM0MDIzMH0.tc3oZrRBDhbQXfwerLPjTbsNMDwSP0gHhhmd96bPd9I'
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdG1iYWpmdXZibmlwbmZ2Y3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5NDI1MjUsImV4cCI6MjA3NzUxODUyNX0.vgmFY5TRjzrLHCKLPf2cTgrLFKcNbItzC6_StDu9xPI',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdG1iYWpmdXZibmlwbmZ2Y3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5NDI1MjUsImV4cCI6MjA3NzUxODUyNX0.vgmFY5TRjzrLHCKLPf2cTgrLFKcNbItzC6_StDu9xPI'
           }
         }
       );
@@ -71,64 +71,19 @@ export const BalanceTrendChart: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // สร้างช่วงวันที่ 7 วันล่าสุด (26 ต.ค. - 1 พ.ย. 2025)
-  const generateLast7Days = (): string[] => {
-    // ระบุวันที่แบบชัดเจนเพื่อให้แน่ใจว่าแสดงครบ 7 วัน
-    const dates: string[] = [
-      '2025-10-26', // 26 ตุลาคม 2025
-      '2025-10-27', // 27 ตุลาคม 2025
-      '2025-10-28', // 28 ตุลาคม 2025
-      '2025-10-29', // 29 ตุลาคม 2025
-      '2025-10-30', // 30 ตุลาคม 2025
-      '2025-10-31', // 31 ตุลาคม 2025
-      '2025-11-01'  // 1 พฤศจิกายน 2025 (วันปัจจุบัน)
-    ];
-    
-    console.log('=== กราฟแสดง 7 วัน (26 ต.ค. - 1 พ.ย. 2025) ===');
-    console.log('วันที่ทั้งหมด:', dates);
-    console.log('จำนวนวัน:', dates.length);
-    console.log('วันแรก:', dates[0], '| วันสุดท้าย:', dates[6]);
-    console.log('==========================================');
-    
-    return dates;
-  };
-
-  // จับคู่ข้อมูลจาก API กับวันที่ และเติมค่า 0 ถ้าไม่มีข้อมูล
+  // ใช้ข้อมูลจาก API โดยตรง (เรียงตามวันที่)
   const sortedChartData = useMemo(() => {
-    const last7Days = generateLast7Days();
-    
     console.log('=== BalanceTrendChart Data Processing ===');
     console.log('จำนวนข้อมูลจาก API:', chartData.length, 'วัน');
-    console.log('วันที่ที่มีข้อมูลจาก API:', chartData.map(d => d.date));
+    console.log('วันที่ที่มีข้อมูลจาก API:', chartData.map(d => `${d.date}: ฿${d.dailyIncome}`));
     
-    const completeData = last7Days.map((date, index) => {
-      // หาข้อมูลจาก API สำหรับวันนี้
-      const dataForDate = chartData.find(d => d.date === date);
-      
-      if (dataForDate) {
-        console.log(`[${index + 1}/7] ${date}: มีข้อมูล - ฿${dataForDate.dailyIncome.toLocaleString()}, ${dataForDate.transactionCount} รายการ`);
-        return dataForDate;
-      } else {
-        // ถ้าไม่มีข้อมูล ให้สร้างข้อมูลว่างๆ
-        const dateObj = new Date(date + 'T00:00:00');
-        const dateLabel = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-        const isToday = date === '2025-11-01';
-        console.log(`[${index + 1}/7] ${date}: ไม่มีข้อมูล - ใช้ค่า 0 (Label: ${dateLabel})${isToday ? ' [วันนี้]' : ''}`);
-        return {
-          date: date,
-          dateLabel: dateLabel,
-          dailyIncome: 0,
-          transactionCount: 0
-        };
-      }
-    });
+    // ใช้ข้อมูลจาก API โดยตรง (เรียงตามวันที่แล้ว)
+    const completeData = [...chartData].sort((a, b) => a.date.localeCompare(b.date));
     
-    console.log('=== สรุปข้อมูลกราฟสมบูรณ์ (ต้องมี 7 จุด) ===');
-    console.log('จำนวนจุดบนกราฟ:', completeData.length);
+    console.log('=== สรุปข้อมูลกราฟสมบูรณ์ ===');
     completeData.forEach((d, idx) => {
       console.log(`${idx + 1}. ${d.dateLabel} (${d.date}): ฿${d.dailyIncome.toLocaleString()}, ${d.transactionCount} รายการ`);
     });
-    console.log('================================================');
     
     return completeData;
   }, [chartData]);

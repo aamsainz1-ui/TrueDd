@@ -31,7 +31,7 @@ export function TransactionHistoryReport() {
     startDate: '',
     endDate: '',
     phoneNumber: '',
-    limit: 100
+    limit: 10000
   });
   const [showFilters, setShowFilters] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -165,7 +165,7 @@ export function TransactionHistoryReport() {
       startDate: '',
       endDate: '',
       phoneNumber: '',
-      limit: 100
+      limit: 10000
     });
   };
 
@@ -293,6 +293,8 @@ export function TransactionHistoryReport() {
                   <option value={100}>100 รายการ</option>
                   <option value={200}>200 รายการ</option>
                   <option value={500}>500 รายการ</option>
+                  <option value={1000}>1,000 รายการ</option>
+                  <option value={10000}>ทั้งหมด</option>
                 </select>
               </div>
             </div>

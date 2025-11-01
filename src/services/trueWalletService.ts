@@ -626,6 +626,7 @@ export class TrueWalletService {
     endDate?: string;
     phoneNumber?: string;
     limit?: number;
+    sourceType?: string; // เพิ่มการกรองตาม source_type
   }): Promise<{
     transactions: any[];
     summary: {
@@ -692,6 +693,7 @@ export class TrueWalletService {
     endDate?: string;
     phoneNumber?: string;
     limit?: number;
+    sourceType?: string; // เพิ่มการกรองตาม source_type
   }): Promise<{
     transactions: any[];
     summary: {
@@ -706,6 +708,9 @@ export class TrueWalletService {
       
       // Add filters
       const apiFilters = [];
+      
+      // กรองเฉพาะ recent_transactions เท่านั้น (ไม่รวม transfer_search)
+      apiFilters.push(`source_type.eq.recent_transactions`);
       
       if (filters?.startDate) {
         apiFilters.push(`transaction_date.gte.${filters.startDate}`);

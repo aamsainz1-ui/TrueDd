@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
     let queryConditions = [];
     let queryParams: any[] = [];
 
+    // กรองเฉพาะ recent_transactions เท่านั้น (ไม่รวม transfer_search)
+    queryConditions.push('source_type = $' + (queryParams.length + 1));
+    queryParams.push('recent_transactions');
+
     if (startDate) {
       queryConditions.push('transaction_date >= $' + (queryParams.length + 1));
       queryParams.push(startDate);
@@ -81,6 +85,9 @@ Deno.serve(async (req) => {
       console.log('RPC failed, using direct table query');
       
       let directUrl = `${supabaseUrl}/rest/v1/transaction_history?select=*`;
+      
+      // กรองเฉพาะ recent_transactions เท่านั้น
+      directUrl += `&source_type=eq.recent_transactions`;
       
       if (startDate) directUrl += `&transaction_date=gte.${startDate}`;
       if (endDate) directUrl += `&transaction_date=lte.${endDate}`;

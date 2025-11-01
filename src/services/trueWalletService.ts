@@ -95,27 +95,23 @@ export class TrueWalletService {
 
   async fetchBalance(): Promise<BalanceData> {
     try {
-      // ใช้ Supabase Edge Function แทน TrueMoney API โดยตรง (แก้ปัญหา CORS)
-      const supabaseUrl = `${this.supabaseUrl}/functions/v1/true-wallet-balance`;
+      // เรียก TrueMoney Balance API โดยตรง
+      const balanceApiUrl = 'https://apis.truemoneyservices.com/account/v1/balance';
       
-      console.log('🔧 ใช้ Supabase Edge Function สำหรับ Balance API');
-      console.log('  - Supabase URL:', supabaseUrl);
-      console.log('  - ปลายทาง: ✅ Supabase Edge Function');
+      console.log('💰 เรียก Balance API โดยตรง');
+      console.log('  - API URL:', balanceApiUrl);
+      console.log('  - ปลายทาง: ✅ TrueMoney Balance API');
 
-      console.log('💰 เรียก Balance API ผ่าน Supabase Edge Function');
-      console.log('🔑 ใช้ token ที่กำหนดไว้ใน Edge Function');
-
-      // เรียก Supabase Edge Function พร้อม timeout
+      // เรียก TrueMoney API พร้อม timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
-      const response = await fetch(supabaseUrl, {
-        method: 'POST',
+      const response = await fetch(balanceApiUrl, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${this.apiConfig.balanceApiToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}), // Edge function จะใช้ token ที่กำหนดไว้ในโค้ด
         signal: controller.signal
       });
       
@@ -123,45 +119,42 @@ export class TrueWalletService {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Supabase Authorization ไม่ถูกต้อง');
+          throw new Error('Balance Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Supabase Edge Function ไม่พบ');
+          throw new Error('Balance API ไม่พบ');
         } else {
-          throw new Error(`Supabase Edge Function Error: ${response.status} ${response.statusText}`);
+          throw new Error(`Balance API Error: ${response.status} ${response.statusText}`);
         }
       }
 
       const result = await response.json();
-      console.log('📋 Balance API Response ผ่าน Supabase:', result);
+      console.log('📋 Balance API Response:', result);
       
-      // ตรวจสอบ error จาก Edge Function
+      // ตรวจสอบ error จาก TrueMoney API
       if (result.error) {
-        console.error('❌ Supabase Edge Function business error:', result.error);
+        console.error('❌ TrueMoney API business error:', result.error);
         throw new Error(result.error.message || 'ไม่สามารถดึงข้อมูลยอดเงินได้');
       }
       
-      // Edge Function returns: { data: balanceData, timestamp: "..." }
-      const balanceData = result.data;
-      
-      if (!balanceData || !balanceData.data || !balanceData.data.balance) {
+      // TrueMoney API returns: { data: { balance: "70000.00", mobile_no: "...", updated_at: "..." } }
+      if (!result.data || !result.data.balance) {
         console.error('❌ ไม่พบข้อมูล balance ใน response:', result);
         throw new Error('ไม่พบข้อมูลยอดเงิน');
       }
       
-      // แปลงจากสตางค์เป็นบาท (Balance API ส่งเป็นสตางค์)
-      const balanceInBaht = parseFloat(balanceData.data.balance || 0) / 100;
+      const balanceInBaht = parseFloat(result.data.balance || 0);
       
       console.log('💰 Balance ข้อมูลที่แปลงแล้ว:');
       console.log(`  - ยอดเงิน: ${balanceInBaht.toLocaleString()} THB`);
-      console.log(`  - เบอร์โทรศัพท์: ${balanceData.data.mobile_no || 'ไม่ระบุ'}`);
-      console.log(`  - อัพเดทล่าสุด: ${balanceData.data.updated_at || 'ไม่ทราบ'}`);
+      console.log(`  - เบอร์โทรศัพท์: ${result.data.mobile_no || 'ไม่ระบุ'}`);
+      console.log(`  - อัพเดทล่าสุด: ${result.data.updated_at || 'ไม่ทราบ'}`);
       console.log(`  - สกุลเงิน: THB`);
-      console.log(`  - ผ่าน: ✅ Supabase Edge Function`);
+      console.log(`  - ผ่าน: ✅ TrueMoney API`);
       
       return {
-        currentBalance: balanceInBaht, // แปลงจากสตางค์เป็นบาท
+        currentBalance: balanceInBaht, // TrueMoney API ส่งเป็นบาทอยู่แล้ว
         currency: 'THB',
-        timestamp: balanceData.data.updated_at || new Date().toISOString(),
+        timestamp: result.data.updated_at || new Date().toISOString(),
       };
     } catch (error) {
       console.error('❌ Failed to fetch balance:', error);
@@ -175,27 +168,23 @@ export class TrueWalletService {
 
   async fetchRecentTransactions(): Promise<Transaction[]> {
     try {
-      // ใช้ Supabase Edge Function แทน TrueMoney API โดยตรง (แก้ปัญหา CORS)
-      const supabaseUrl = `${this.supabaseUrl}/functions/v1/true-wallet-transactions`;
+      // เรียก TrueMoney Transactions API โดยตรง
+      const transactionsApiUrl = 'https://apis.truemoneyservices.com/account/v1/my-last-receive';
       
-      console.log('🔧 ใช้ Supabase Edge Function สำหรับ Transactions API');
-      console.log('  - Supabase URL:', supabaseUrl);
-      console.log('  - ปลายทาง: ✅ Supabase Edge Function');
+      console.log('📡 เรียก Transactions API โดยตรง');
+      console.log('  - API URL:', transactionsApiUrl);
+      console.log('  - ปลายทาง: ✅ TrueMoney Transactions API');
 
-      console.log('📡 เรียก Transactions API ผ่าน Supabase Edge Function');
-      console.log('🔑 ใช้ token ที่กำหนดไว้ใน Edge Function');
-
-      // เรียก Supabase Edge Function พร้อม timeout
+      // เรียก TrueMoney API พร้อม timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
-      const response = await fetch(supabaseUrl, {
-        method: 'POST',
+      const response = await fetch(transactionsApiUrl, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${this.apiConfig.transactionsApiToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}), // Edge function จะใช้ token ที่กำหนดไว้ในโค้ด
         signal: controller.signal
       });
       
@@ -205,13 +194,13 @@ export class TrueWalletService {
         console.error('❌ Transactions API Error:', {
           status: response.status,
           statusText: response.statusText,
-          url: supabaseUrl
+          url: 'https://apis.truemoneyservices.com/account/v1/my-last-receive'
         });
         
         if (response.status === 401) {
-          throw new Error('Supabase Authorization ไม่ถูกต้อง');
+          throw new Error('Transactions Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Supabase Edge Function ไม่พบ');
+          throw new Error('Transactions API ไม่พบ');
         } else {
           throw new Error(`❌ Supabase Edge Function Error: ${response.status} ${response.statusText}`);
         }
@@ -220,25 +209,22 @@ export class TrueWalletService {
       const result = await response.json();
       console.log('📋 Transactions API Response ผ่าน Supabase:', result);
       
-      // ตรวจสอบ error จาก Edge Function
+      // ตรวจสอบ error จาก TrueMoney API
       if (result.error) {
         throw new Error(result.error.message || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
       }
       
-      // Edge Function returns: { data: transactionsData, timestamp: "..." }
-      const transactionsData = result.data;
-      
-      if (!transactionsData || !transactionsData.data) {
+      // TrueMoney API returns: { data: { transaction: { amount: "...", sender_mobile: "...", ... } } }
+      if (!result.data || !result.data.transaction) {
         console.log('No transaction data found in response');
         return []; // ไม่มีข้อมูลธุรกรรม
       }
       
       // Convert single transaction to array
-      const transactionData = transactionsData.data;
-      const transactions = Array.isArray(transactionData) ? transactionData : [transactionData];
+      const transactions = Array.isArray(result.data.transaction) ? result.data.transaction : [result.data.transaction];
       
       const processedTransactions = transactions.map((item: any, index: number) => {
-        const amountValue = parseFloat(item.amount || 0) / 100.0; // แปลงจากสตางค์เป็นบาท
+        const amountValue = parseFloat(item.amount || 0); // TrueMoney API ส่งเป็นบาทอยู่แล้ว
         
         const transaction = {
           id: item.transaction_id || `TXN${String(index + 1).padStart(3, '0')}`,
@@ -268,7 +254,7 @@ export class TrueWalletService {
       });
 
       console.log(`✅ ประมวลผล transactions เสร็จสิ้น: ${processedTransactions.length} รายการ`);
-      console.log(`  - ผ่าน: ✅ Supabase Edge Function`);
+      console.log(`  - ผ่าน: ✅ TrueMoney API`);
       
       return processedTransactions;
     } catch (error) {
@@ -285,12 +271,12 @@ export class TrueWalletService {
     try {
       console.log('🔍 เริ่มการค้นหาเบอร์โทรศัพท์:', phoneNumber);
       
-      // ใช้ Supabase Edge Function แทน TrueMoney API โดยตรง (แก้ปัญหา CORS)
-      const supabaseUrl = `${this.supabaseUrl}/functions/v1/true-wallet-transfer-search`;
+      // เรียก TrueMoney Transfer Search API โดยตรง
+      const searchApiUrl = 'https://apis.truemoneyservices.com/account/v1/my-receive';
       
-      console.log('🔧 ใช้ Supabase Edge Function สำหรับ Transfer Search API');
-      console.log('  - Supabase URL:', supabaseUrl);
-      console.log('  - ปลายทาง: ✅ Supabase Edge Function');
+      console.log('🔍 เรียก Transfer Search API โดยตรง');
+      console.log('  - API URL:', searchApiUrl);
+      console.log('  - ปลายทาง: ✅ TrueMoney Transfer Search API');
 
       // Parameters สำหรับ Transfer Search API ที่ทดสอบสำเร็จแล้ว
       const requestBody = {
@@ -305,10 +291,10 @@ export class TrueWalletService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
-      const response = await fetch(supabaseUrl, {
+      const response = await fetch(searchApiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Authorization': `Bearer ${this.apiConfig.transferSearchApiToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
@@ -322,15 +308,15 @@ export class TrueWalletService {
         console.error('❌ Transfer Search API Error:', {
           status: response.status,
           statusText: response.statusText,
-          url: supabaseUrl,
+          url: searchApiUrl,
           phoneNumber: phoneNumber,
           requestBody: requestBody
         });
         
         if (response.status === 401) {
-          throw new Error('Supabase Authorization ไม่ถูกต้อง');
+          throw new Error('Transfer Search Token ไม่ถูกต้อง');
         } else if (response.status === 404) {
-          throw new Error('Supabase Edge Function ไม่พบ');
+          throw new Error('Transfer Search API ไม่พบ');
         } else if (response.status === 429) {
           throw new Error('⚠️ เรียกใช้งานมากเกินกว่าที่กำหนด (30 ครั้ง/30 วินาที)');
         } else {
@@ -342,31 +328,29 @@ export class TrueWalletService {
       console.log('📋 Transfer Search API Response ผ่าน Supabase:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
-      // ตรวจสอบ error จาก Edge Function
+      // ตรวจสอบ error จาก TrueMoney API
       if (result.error) {
         throw new Error(result.error.message || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
       }
 
-      // Edge Function returns: { data: searchData, timestamp: "..." }
-      const apiData = result.data;
-      
-      if (!apiData || !apiData.data || !apiData.data.transactions) {
+      // TrueMoney API returns: { data: { transactions: [...], system_code: 1000 } }
+      if (!result.data || !result.data.data || !result.data.data.transactions) {
         console.log('❌ ไม่พบข้อมูลธุรกรรมสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูล
       }
       
       // ตรวจสอบ system_code
-      if (apiData.data.system_code === 1000) {
+      if (result.data.data.system_code === 1000) {
         console.log('✅ Data retrieved completely');
       } else {
-        console.log('⚠️ System code:', apiData.data.system_code, '-', apiData.data.system_message);
+        console.log('⚠️ System code:', result.data.data.system_code, '-', result.data.data.system_message);
       }
       
-      const transactions = Array.isArray(apiData.data.transactions) ? apiData.data.transactions : [];
+      const transactions = Array.isArray(result.data.data.transactions) ? result.data.data.transactions : [];
       
       console.log(`📊 พบธุรกรรมทั้งหมด: ${transactions.length} รายการ`);
       console.log(`🎯 ธุรกรรมสำหรับเบอร์ ${phoneNumber} (ทั้งหมดเป็น sender_mobile): ${transactions.length} รายการ`);
-      console.log(`  - ผ่าน: ✅ Supabase Edge Function`);
+      console.log(`  - ผ่าน: ✅ TrueMoney API`);
       
       if (transactions.length === 0) {
         console.log(`🔍 ไม่พบธุรกรรมสำหรับเบอร์ ${phoneNumber}`);

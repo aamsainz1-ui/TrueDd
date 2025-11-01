@@ -96,7 +96,8 @@ export class TrueWalletService {
   async fetchBalance(): Promise<BalanceData> {
     try {
       // เรียก TrueMoney Balance API โดยตรง
-      const balanceApiUrl = 'https://apis.truemoneyservices.com/account/v1/balance';
+      // ใช้ CORS proxy เพื่อแก้ปัญหา CORS error
+      const balanceApiUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://apis.truemoneyservices.com/account/v1/balance');
       
       console.log('💰 เรียก Balance API โดยตรง');
       console.log('  - API URL:', balanceApiUrl);
@@ -114,6 +115,19 @@ export class TrueWalletService {
         },
         signal: controller.signal
       });
+      
+      // ถ้าใช้ proxy ต้อง parse response ใหม่
+      if (balanceApiUrl.includes('allorigins.win')) {
+        const proxyResponse = await response.json();
+        
+        // ตรวจสอบว่า proxy สำเร็จหรือไม่
+        if (proxyResponse.contents) {
+          const actualResponse = JSON.parse(proxyResponse.contents);
+          result = actualResponse;
+        } else {
+          throw new Error('CORS Proxy Error: ไม่สามารถเรียก TrueMoney API ได้');
+        }
+      }
       
       clearTimeout(timeoutId);
 

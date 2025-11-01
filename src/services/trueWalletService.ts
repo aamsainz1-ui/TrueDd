@@ -419,7 +419,7 @@ export class TrueWalletService {
         console.error('❌ Transfer Search API Error:', {
           status: response.status,
           statusText: response.statusText,
-          url: finalUrl,
+          url: searchApiUrl,
           phoneNumber: phoneNumber
         });
         
@@ -475,7 +475,7 @@ export class TrueWalletService {
         // ค้นหาข้อมูลจากฐานข้อมูล local
         try {
           const localTransactions = await this.getTransactionHistory();
-          const phoneTransactions = localTransactions.filter(tx => 
+          const phoneTransactions = localTransactions.transactions.filter(tx => 
             tx.phone_number === phoneNumber || tx.sender === phoneNumber
           );
           
@@ -513,6 +513,10 @@ export class TrueWalletService {
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);
           
+          // ข้อมูลผู้ส่งและผู้รับ
+          const fromName = item.sender_mobile || 'ไม่ระบุ';
+          const toName = item.receiver_mobile || 'ไม่ระบุ';
+          
           // จำนวนเงิน - TrueMoney APIs ส่งเป็นสตางค์ ต้องแปลงเป็นบาท
           let amountInSatang = 0;
           let amountInBaht = 0;
@@ -526,10 +530,6 @@ export class TrueWalletService {
           }
           
           console.log(`Transaction ${index}: from=${fromName}, amount=${item.amount} satang -> ${amountInBaht} baht`);
-          
-          // ข้อมูลผู้ส่งและผู้รับ
-          const fromName = item.sender_mobile || 'ไม่ระบุ';
-          const toName = item.receiver_mobile || 'ไม่ระบุ';
           
           console.log(`Transaction ${index}: from=${fromName}, to=${toName}, amount=${item.amount} -> ${amountInBaht} baht`);
           

@@ -11,7 +11,7 @@ export function TransferHistoryList({ transfers }: TransferHistoryListProps) {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(Math.round(amount * 100) / 100); // ปัดเศษและบังคับแสดง 2 ตำแหน่ง
+    }).format(amount);
   };
 
   const formatDateTime = (datetime: string) => {

@@ -315,7 +315,9 @@ export class TrueWalletService {
       
       const processedTransactions = transactions.map((item: any, index: number) => {
         // ปรับปรุงการดึงข้อมูลให้ยืดหยุ่นมากขึ้น
-        const amountValue = parseFloat(item.amount || item.value || item.balance || 0); // หลายรูปแบบ
+        const amountInSatang = parseFloat(item.amount || item.value || item.balance || 0); // หลายรูปแบบ
+        const amountInBaht = amountInSatang / 100; // แปลงจากสตางค์เป็นบาท
+        
         const transactionId = item.transaction_id || item.id || item.txn_id || `TXN${String(index + 1).padStart(3, '0')}`;
         const senderMobile = item.sender_mobile || item.sender || item.from_mobile || item.phone_number;
         const receivedTime = item.received_time || item.timestamp || item.created_at || item.date || new Date().toISOString();
@@ -323,7 +325,8 @@ export class TrueWalletService {
         const message = item.message || item.description || item.note || '';
         
         console.log(`🔍 Processing transaction ${index + 1}:`, {
-          amount: amountValue,
+          amountSatang: amountInSatang,
+          amountBaht: amountInBaht,
           id: transactionId,
           sender: senderMobile,
           time: receivedTime,
@@ -334,7 +337,7 @@ export class TrueWalletService {
           id: transactionId,
           type: 'income' as const,
           category: eventType === 'P2P' ? 'รับโอนเงิน' : 'รายการรับเงิน',
-          amount: amountValue,
+          amount: amountInBaht, // ใช้จำนวนที่แปลงแล้วเป็นบาท
           sender: senderMobile || 'ไม่ระบุ',
           datetime: receivedTime,
           status: 'completed' as const,
@@ -462,15 +465,19 @@ export class TrueWalletService {
           console.log(`Transaction ${index}:`, JSON.stringify(item, null, 2));
           console.log(`Raw amount value: ${item.amount} (${typeof item.amount})`);
           
-          // จำนวนเงิน - Transfer Search API ส่งเป็นบาท
-          let amountValue = 0;
+          // จำนวนเงิน - TrueMoney APIs ส่งเป็นสตางค์ ต้องแปลงเป็นบาท
+          let amountInSatang = 0;
+          let amountInBaht = 0;
           
           if (item.amount !== undefined && item.amount !== null) {
             const amountNum = parseFloat(item.amount.toString());
             if (!isNaN(amountNum) && amountNum > 0) {
-              amountValue = amountNum; // Transfer Search API ส่งเป็นบาทอยู่แล้ว
+              amountInSatang = amountNum;
+              amountInBaht = amountInSatang / 100; // แปลงจากสตางค์เป็นบาท
             }
           }
+          
+          console.log(`Transaction ${index}: from=${fromName}, amount=${item.amount} satang -> ${amountInBaht} baht`);
           
           // ข้อมูลผู้ส่งและผู้รับ
           const fromName = item.sender_mobile || 'ไม่ระบุ';
@@ -482,7 +489,7 @@ export class TrueWalletService {
             id: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
             fromName: fromName,
             toName: toName,
-            amount: amountValue,
+            amount: amountInBaht, // ใช้จำนวนที่แปลงแล้วเป็นบาท
             datetime: item.received_time || new Date().toISOString(),
             status: 'completed' as const,
             reference: item.transaction_id || '',
@@ -494,7 +501,7 @@ export class TrueWalletService {
           // Auto-save transaction history for each transfer found
           const saveData = {
             phoneNumber: fromName,
-            amount: amountValue,
+            amount: amountInBaht, // ใช้จำนวนที่แปลงแล้วเป็นบาท
             transactionId: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
             transactionTime: item.received_time || new Date().toISOString(),
             description: `รับเงินจากการค้นหาโอนเงิน - ${phoneNumber} (Transfer Search API)`,

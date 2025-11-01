@@ -324,7 +324,7 @@ export class TrueWalletService {
         const message = item.message || item.description || item.note || '';
         
         console.log(`🔍 Processing transaction ${index + 1}:`, {
-          amountSatang: amountInSatang,
+          amount: item.amount,
           amountBaht: amountInBaht,
           id: transactionId,
           sender: senderMobile,

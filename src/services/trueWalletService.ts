@@ -1,8 +1,8 @@
 import type { BalanceData, Transaction, TransferHistory } from '../types';
 
 // Supabase configuration - จะโหลดจาก Settings
-const DEFAULT_SUPABASE_URL = '';
-const DEFAULT_SUPABASE_ANON_KEY = '';
+const DEFAULT_SUPABASE_URL = 'https://dltmbajfuvbnipnfvcrl.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdG1iYWpmdXZibmlwbmZ2Y3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5NDI1MjUsImV4cCI6MjA3NzUxODUyNX0.vgmFY5TRjzrLHCKLPf2cTgrLFKcNbItzC6_StDu9xPI';
 
 // TrueMoney API endpoints ที่ทดสอบแล้ว
 const TRUEMONEY_ENDPOINTS = {

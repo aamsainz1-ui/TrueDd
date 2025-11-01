@@ -8,7 +8,7 @@ const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 const TRUEMONEY_ENDPOINTS = {
   balance: 'https://apis.truemoneyservices.com/account/v1/balance',
   transactions: 'https://apis.truemoneyservices.com/account/v1/my-last-receive',
-  transferSearch: 'https://apis.truemoneyservices.com/account/v1/my-receive'
+  transferSearch: 'https://dltmbajfuvbnipnfvcrl.supabase.co/functions/v1/true-wallet-transfer-search'
 };
 
 const STORAGE_KEY = 'walletConfig';
@@ -381,33 +381,35 @@ export class TrueWalletService {
       // เรียก TrueMoney Transfer Search API โดยตรง (แบบปกติที่ทำงานได้)
       const searchApiUrl = this.getFullUrl(this.apiConfig.transferSearchApiUrl);
       
-      console.log('🔍 เรียก Transfer Search API โดยตรง');
+      console.log('🔍 เรียก Transfer Search API ผ่าน Edge Function');
       console.log('  - API URL:', searchApiUrl);
       console.log('  - Token:', this.apiConfig.transferSearchApiToken ? `${this.apiConfig.transferSearchApiToken.substring(0, 8)}...` : 'ไม่พบ');
 
-      // Parameters สำหรับ TrueMoney Transfer Search API
-      const params = new URLSearchParams();
-      params.append('sender_mobile', phoneNumber);
-      params.append('type', 'P2P');
-      params.append('quantity', '30'); // จำนวนวันย้อนหลัง
+      // Request body สำหรับ Edge Function
+      const requestBody: any = {
+        phoneNumber: phoneNumber,
+        type: "P2P",
+        quantity: 30 // จำนวนวันย้อนหลัง
+      };
       
       if (amount) {
-        params.append('amount', amount.toString());
+        requestBody.amount = amount;
       }
       
-      const finalUrl = `${searchApiUrl}?${params.toString()}`;
-      console.log('📤 Request URL:', finalUrl);
+      console.log('📤 Request Body:', requestBody);
       
-      // เรียก TrueMoney API โดยตรงพร้อม timeout
+      // เรียก Edge Function พร้อม timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
-      const response = await fetch(finalUrl, {
-        method: 'GET',
+      const response = await fetch(searchApiUrl, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiConfig.transferSearchApiToken}`,
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
 
@@ -434,21 +436,34 @@ export class TrueWalletService {
       }
 
       const result = await response.json();
-      console.log('📋 Transfer Search API Response โดยตรง:', result);
+      console.log('📋 Transfer Search API Response จาก Edge Function:', result);
       console.log('📱 กำลังประมวลผลผลลัพธ์สำหรับเบอร์:', phoneNumber);
       
-      // ตรวจสอบ error จาก TrueMoney API
-      if (result.status === 'err') {
-        throw new Error(result.err || 'ไม่สามารถดึงข้อมูลธุรกรรมได้');
+      // Edge function จะตอบกลับเป็น: { "data": trueMoneyResult, "timestamp": "..." }
+      // โดย trueMoneyResult มี format: { "status": "ok"/"err", "data": [...] }
+      const trueMoneyResult = result.data;
+      
+      if (trueMoneyResult.error) {
+        // กรณีที่ TrueMoney API ส่ง error
+        console.log('❌ ไม่พบข้อมูลการรับโอนเงินจากเบอร์:', phoneNumber);
+        console.log('🔍 Edge Function Error:', trueMoneyResult.error);
+        // ไม่ต้อง throw error ให้ fallback ไปหา local database
+      }
+      
+      // ตรวจสอบ TrueMoney API response
+      if (trueMoneyResult.status === 'err') {
+        console.log('❌ ไม่พบข้อมูลธุรกรรมสำหรับเบอร์:', phoneNumber);
+        console.log('🔍 TrueMoney API Error:', trueMoneyResult.err);
+        // ไม่ต้อง throw error ให้ fallback ไปหา local database
       }
 
-      // TrueMoney API returns: { "status": "ok", "data": [...] }
-      if (!result.data || !Array.isArray(result.data)) {
+      // ตรวจสอบข้อมูลที่ได้รับ
+      if (!trueMoneyResult.data || !Array.isArray(trueMoneyResult.data)) {
         console.log('❌ ไม่พบข้อมูลธุรกรรมสำหรับเบอร์:', phoneNumber);
         return []; // ไม่มีข้อมูล
       }
       
-      const transactions = result.data;
+      const transactions = trueMoneyResult.data;
       
       console.log(`📊 พบธุรกรรมทั้งหมด: ${transactions.length} รายการ`);
       console.log(`🎯 ธุรกรรมสำหรับเบอร์ ${phoneNumber}: ${transactions.length} รายการ`);

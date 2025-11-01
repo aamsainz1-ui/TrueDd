@@ -96,6 +96,9 @@ function App() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'ไม่สามารถดึงข้อมูลธุรกรรมได้';
+      const errorDetails = err instanceof Error ? err.stack : String(err);
+      
+      console.error('❌ Transactions API Error Details:', errorDetails);
       
       // ตรวจสอบ CORS error
       const isCORS = errorMessage.includes('CORS') || 
@@ -109,6 +112,14 @@ function App() {
         setTransactionsError('🚨 ปัญหา CORS - ต้องใช้ Extension หรือ Proxy');
         setTransactionsStatus('error');
         console.warn('CORS error detected in transactions fetch:', errorMessage);
+      } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        setTransactionsError('🔑 Token ไม่ถูกต้องหรือหมดอายุ - กรุณาตรวจสอบ API Token ในการตั้งค่า');
+        setTransactionsStatus('error');
+        toast.error('🔑 ดึงธุรกรรมล้มเหลว: Token ไม่ถูกต้อง');
+      } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+        setTransactionsError('🔗 API Endpoint ไม่พบ - กรุณาตรวจสอบ API URL ในการตั้งค่า');
+        setTransactionsStatus('error');
+        toast.error('🔗 ดึงธุรกรรมล้มเหลว: API Endpoint ไม่พบ');
       } else {
         setTransactionsError(errorMessage);
         setTransactionsStatus('error');

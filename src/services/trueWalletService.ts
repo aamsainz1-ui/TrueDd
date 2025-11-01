@@ -196,7 +196,7 @@ export class TrueWalletService {
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
       const response = await fetch(transactionsApiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,
           'Content-Type': 'application/json',
@@ -314,13 +314,11 @@ export class TrueWalletService {
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 วินาที timeout
       
       const response = await fetch(searchApiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
 

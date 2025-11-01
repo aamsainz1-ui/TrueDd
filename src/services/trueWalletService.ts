@@ -314,9 +314,8 @@ export class TrueWalletService {
       console.log(`📊 Processing ${transactions.length} transactions`);
       
       const processedTransactions = transactions.map((item: any, index: number) => {
-        // ปรับปรุงการดึงข้อมูลให้ยืดหยุ่นมากขึ้น
-        const amountInSatang = parseFloat(item.amount || item.value || item.balance || 0); // หลายรูปแบบ
-        const amountInBaht = amountInSatang / 100; // แปลงจากสตางค์เป็นบาท
+        // ปรับปรุงการดึงข้อมูลให้ยืดหยุ่นมากขึ้น - Recent Transactions API ส่งมาเป็นบาทแล้ว
+        const amountInBaht = parseFloat(item.amount || item.value || item.balance || 0); // ใช้ค่าเดิมเป็นบาท
         
         const transactionId = item.transaction_id || item.id || item.txn_id || `TXN${String(index + 1).padStart(3, '0')}`;
         const senderMobile = item.sender_mobile || item.sender || item.from_mobile || item.phone_number;
@@ -504,19 +503,17 @@ export class TrueWalletService {
           const fromName = item.sender_mobile || 'ไม่ระบุ';
           const toName = item.receiver_mobile || 'ไม่ระบุ';
           
-          // จำนวนเงิน - TrueMoney APIs ส่งเป็นสตางค์ ต้องแปลงเป็นบาท
-          let amountInSatang = 0;
+          // จำนวนเงิน - Transfer Search API ส่งข้อมูลมาเป็นบาทแล้ว ไม่ต้องแปลง
           let amountInBaht = 0;
           
           if (item.amount !== undefined && item.amount !== null) {
             const amountNum = parseFloat(item.amount.toString());
             if (!isNaN(amountNum) && amountNum > 0) {
-              amountInSatang = amountNum;
-              amountInBaht = amountInSatang / 100; // แปลงจากสตางค์เป็นบาท
+              amountInBaht = amountNum; // ใช้ค่าเดิมเป็นบาท
             }
           }
           
-          console.log(`Transaction ${index}: from=${fromName}, amount=${item.amount} satang -> ${amountInBaht} baht`);
+          console.log(`Transaction ${index}: from=${fromName}, amount=${amountInBaht} baht (เดิมจาก API)`);
           
           const transfer: TransferHistory = {
             id: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
@@ -756,9 +753,8 @@ export class TrueWalletService {
 
       // Transform transactions data to match expected format
       const transformedTransactions = transactions.map((transaction: any) => {
-        // แปลงจากสตางค์เป็นบาท (transaction_history เก็บเป็นสตางค์)
-        const amountInSatang = parseFloat(transaction.amount);
-        const amountInBaht = amountInSatang / 100;
+        // ใช้ค่าเดิมเป็นบาท (transaction_history เก็บเป็นบาทแล้ว ไม่ต้องแปลง)
+        const amountInBaht = parseFloat(transaction.amount);
         
         return {
           id: transaction.id,
@@ -766,7 +762,7 @@ export class TrueWalletService {
           transaction_date: transaction.transaction_date,
           transaction_time: transaction.transaction_time,
           phone_number: transaction.phone_number,
-          amount: amountInBaht, // ใช้ยอดที่แปลงเป็นบาทแล้ว
+          amount: amountInBaht, // ใช้ค่าเดิมเป็นบาท
           transaction_id: transaction.transaction_id,
           status: transaction.status,
           description: transaction.description,

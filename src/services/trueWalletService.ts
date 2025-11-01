@@ -794,13 +794,17 @@ export class TrueWalletService {
           return 'ไม่ระบุ';
         };
 
+        // แปลงจากสตางค์เป็นบาท (TrueMoney API ส่งเป็นสตางค์)
+        const amountInSatang = parseFloat(transaction.amount);
+        const amountInBaht = amountInSatang / 100;
+        
         return {
           id: transaction.id,
           created_at: transaction.created_at,
           transaction_date: transaction.date,
           transaction_time: transaction.created_at ? new Date(transaction.created_at).toTimeString().split(' ')[0] : '00:00:00',
           phone_number: extractPhoneFromDescription(transaction.description),
-          amount: parseFloat(transaction.amount),
+          amount: amountInBaht, // ใช้ยอดที่แปลงเป็นบาทแล้ว
           transaction_id: `TXN${transaction.id}`,
           status: 'completed',
           description: transaction.description,

@@ -710,9 +710,9 @@ export class TrueWalletService {
       // กรองเฉพาะ recent_transactions เท่านั้น (ไม่รวม transfer_search)
       apiFilters.push(`source_type.eq.recent_transactions`);
       
-      if (filters?.startDate) {
-        apiFilters.push(`transaction_date.gte.${filters.startDate}`);
-      }
+      // กรองเฉพาะข้อมูลตั้งแต่วันที่ 1 พฤศจิกายน 2025 เป็นต้นไป
+      const minDate = filters?.startDate || '2025-11-01';
+      apiFilters.push(`transaction_date.gte.${minDate}`);
       
       if (filters?.endDate) {
         apiFilters.push(`transaction_date.lte.${filters.endDate}`);

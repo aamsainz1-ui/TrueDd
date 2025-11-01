@@ -47,31 +47,11 @@ export const DailyIncomeChart: React.FC = () => {
       if (result.success) {
         console.log('ข้อมูลที่ได้รับจาก API:', result.data);
         
-        // เพิ่มข้อมูลจากรูปภาพเข้าไปในกราฟ
+        // ใช้ข้อมูลจากฐานข้อมูลโดยตรง
         const apiData = result.data;
-        const newDataFromImage: DailyIncomeData = {
-          date: '2025-11-01',
-          dateLabel: '1 พ.ย.',
-          dailyIncome: 6155.19,
-          transactionCount: 47
-        };
         
-        // ตรวจสอบว่ามีข้อมูลวันเดียวกันใน API หรือไม่ ถ้ามีให้อัพเดต ถ้าไม่มีให้เพิ่ม
-        const updatedData = apiData.map((item: any) => {
-          if (item.date === newDataFromImage.date) {
-            console.log(`อัพเดตข้อมูล ${item.date} จาก ${item.dailyIncome} เป็น ${newDataFromImage.dailyIncome}`);
-            return newDataFromImage;
-          }
-          return item;
-        });
-        
-        // ถ้าไม่มีข้อมูลวันที่ 1 พ.ย. ให้เพิ่มเข้าไป
-        if (!apiData.some((item: any) => item.date === newDataFromImage.date)) {
-          updatedData.push(newDataFromImage);
-          console.log('เพิ่มข้อมูลใหม่จากรูปภาพ:', newDataFromImage);
-        }
-        
-        setChartData(updatedData);
+        console.log('ใช้ข้อมูลจริงจากฐานข้อมูล:', apiData);
+        setChartData(apiData);
         setLastUpdate(new Date());
       } else {
         throw new Error(result.error?.message || 'Failed to fetch data');

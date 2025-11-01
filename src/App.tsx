@@ -281,8 +281,8 @@ function App() {
         error={balanceError} 
       />
 
-      {/* เพิ่มกราฟแนวโน้มยอดรับเงินรายวัน */}
-      <BalanceTrendChart />
+      {/* เพิ่มกราฟสรุปยอดรับเงินรายวัน */}
+      <DailyIncomeChart />
       
       <div className="grid md:grid-cols-1 gap-6">
         <div>

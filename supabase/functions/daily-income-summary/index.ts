@@ -18,12 +18,12 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // คำนวณวันที่เริ่มต้น (7 วันย้อนหลัง)
+    // กำหนดวันที่เริ่มต้นเป็น 1 พฤศจิกายน 2025
+    const baseStartDate = '2025-11-01';
+    const startDate = new Date(baseStartDate + 'T00:00:00');
     const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 6); // 6 วันย้อนหลัง = รวม 7 วัน
-
-    const startDateStr = startDate.toISOString().split('T')[0];
+    
+    const startDateStr = baseStartDate;
     const endDateStr = today.toISOString().split('T')[0];
 
     console.log(`Fetching daily income summary from ${startDateStr} to ${endDateStr}`);
@@ -88,12 +88,13 @@ Deno.serve(async (req) => {
         dayData.transactions.push(tx);
       });
 
-      // สร้างข้อมูลครบ 7 วัน (รวมวันที่ไม่มีข้อมูล)
+      // สร้างข้อมูลตั้งแต่วันที่เริ่มต้นถึงวันปัจจุบัน (รวมวันที่ไม่มีข้อมูล)
       const result = [];
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
+      const currentDate = new Date(startDate);
+      const endDate = new Date(today);
+      
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
         
         const dayData = dailyData.get(dateStr) || {
           date: dateStr,
@@ -104,13 +105,15 @@ Deno.serve(async (req) => {
 
         result.push({
           date: dateStr,
-          dateLabel: date.toLocaleDateString('th-TH', {
+          dateLabel: currentDate.toLocaleDateString('th-TH', {
             month: 'short',
             day: 'numeric'
           }),
           dailyIncome: dayData.totalIncome,
           transactionCount: dayData.transactionCount
         });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
       }
       
       summaryData = result;

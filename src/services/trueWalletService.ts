@@ -17,7 +17,7 @@ const STORAGE_KEY = 'walletConfig';
 const DEFAULT_TOKENS = {
   balance: '5627a2c2088405f97c0608e09f827e2d',
   transactions: 'fa52cb89ccde1818855aad656cc20f8b',
-  transferSearch: 'fa52cb89ccde1818855aad656cc20f8b' // อัปเดตให้ตรงกับ transaction token
+  transferSearch: 'cd58e01134106a58919ff1e89184cb4c' // อัปเดต Search Transfer API token
 };
 
 interface APIConfig {

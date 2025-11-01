@@ -713,18 +713,22 @@ export class TrueWalletService {
     };
   }> {
     try {
-      // Build query parameters for transactions table
-      let queryParams = `select=*&order=date.desc,created_at.desc&limit=${filters?.limit || 50}`;
+      // Build query parameters for transaction_history table
+      let queryParams = `select=*&order=transaction_date.desc,created_at.desc&limit=${filters?.limit || 50}`;
       
       // Add filters
       const apiFilters = [];
       
       if (filters?.startDate) {
-        apiFilters.push(`date.gte.${filters.startDate}`);
+        apiFilters.push(`transaction_date.gte.${filters.startDate}`);
       }
       
       if (filters?.endDate) {
-        apiFilters.push(`date.lte.${filters.endDate}`);
+        apiFilters.push(`transaction_date.lte.${filters.endDate}`);
+      }
+      
+      if (filters?.phoneNumber) {
+        apiFilters.push(`phone_number.ilike.%${filters.phoneNumber}%`);
       }
       
       if (apiFilters.length > 0) {
@@ -733,7 +737,7 @@ export class TrueWalletService {
 
       console.log('Fetching from direct REST API:', queryParams);
       
-      const response = await fetch(`${this.supabaseUrl}/rest/v1/transactions?${queryParams}`, {
+      const response = await fetch(`${this.supabaseUrl}/rest/v1/transaction_history?${queryParams}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.supabaseKey}`,
@@ -752,48 +756,21 @@ export class TrueWalletService {
 
       // Transform transactions data to match expected format
       const transformedTransactions = transactions.map((transaction: any) => {
-        // แยกเบอร์โทรศัพท์จากคำอธิบาย
-        const extractPhoneFromDescription = (description: string) => {
-          if (!description) return 'ไม่ระบุ';
-          
-          // หาเบอร์โทรศัพท์ที่ขึ้นต้นด้วย 0 และมี 10 หลัก
-          const phoneMatch = description.match(/(\d{10})/);
-          if (phoneMatch) {
-            return phoneMatch[1];
-          }
-          
-          // ถ้าไม่มีเบอร์โทรศัพท์ ให้ดูจากคำอธิบายเพื่อกำหนดแหล่งที่มา
-          if (description.includes('เงินเดือน')) {
-            return 'เงินเดือน';
-          }
-          if (description.includes('ค่าคอมพิวเตอร์')) {
-            return 'ค่าบริการ';
-          }
-          if (description.includes('ทดสอบ')) {
-            return 'ระบบทดสอบ';
-          }
-          if (description.includes('รับเงินจาก')) {
-            return 'รับโอนเงิน';
-          }
-          
-          return 'ไม่ระบุ';
-        };
-
-        // แปลงจากสตางค์เป็นบาท (TrueMoney API ส่งเป็นสตางค์)
+        // แปลงจากสตางค์เป็นบาท (transaction_history เก็บเป็นสตางค์)
         const amountInSatang = parseFloat(transaction.amount);
         const amountInBaht = amountInSatang / 100;
         
         return {
           id: transaction.id,
           created_at: transaction.created_at,
-          transaction_date: transaction.date,
-          transaction_time: transaction.created_at ? new Date(transaction.created_at).toTimeString().split(' ')[0] : '00:00:00',
-          phone_number: extractPhoneFromDescription(transaction.description),
+          transaction_date: transaction.transaction_date,
+          transaction_time: transaction.transaction_time,
+          phone_number: transaction.phone_number,
           amount: amountInBaht, // ใช้ยอดที่แปลงเป็นบาทแล้ว
-          transaction_id: `TXN${transaction.id}`,
-          status: 'completed',
+          transaction_id: transaction.transaction_id,
+          status: transaction.status,
           description: transaction.description,
-          source_type: 'dashboard_transactions'
+          source_type: transaction.source_type || 'unknown'
         };
       });
 

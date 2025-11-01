@@ -368,13 +368,6 @@ export class TrueWalletService {
         },
         signal: controller.signal
       });
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.supabaseKey}`,
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal
-      });
 
       clearTimeout(timeoutId);
 
@@ -382,9 +375,8 @@ export class TrueWalletService {
         console.error('❌ Transfer Search API Error:', {
           status: response.status,
           statusText: response.statusText,
-          url: searchApiUrl,
-          phoneNumber: phoneNumber,
-          requestBody: requestBody
+          url: finalUrl,
+          phoneNumber: phoneNumber
         });
         
         if (response.status === 401) {
@@ -394,7 +386,7 @@ export class TrueWalletService {
         } else if (response.status === 429) {
           throw new Error('⚠️ เรียกใช้งานมากเกินกว่าที่กำหนด (30 ครั้ง/30 วินาที)');
         } else {
-          throw new Error(`❌ Supabase Edge Function Error: ${response.status} ${response.statusText}`);
+          throw new Error(`❌ Transfer Search API Error: ${response.status} ${response.statusText}`);
         }
       }
 
@@ -757,4 +749,4 @@ export class TrueWalletService {
   }
 }
 
-export const trueWalletService = new TrueWalletService();                                                                                                                                                                                                                                                                                                                                                                                                                               
+export const trueWalletService = new TrueWalletService();

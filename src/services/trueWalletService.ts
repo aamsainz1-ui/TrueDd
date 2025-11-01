@@ -529,24 +529,14 @@ export class TrueWalletService {
             eventType: item.event_type || 'P2P'
           };
 
-          // Auto-save transaction history for each transfer found
-          const saveData = {
-            phoneNumber: fromName,
-            amount: amountInBaht, // ใช้จำนวนที่แปลงแล้วเป็นบาท
+          // Note: ไม่ auto-save transaction history สำหรับ Transfer Search 
+          // เพราะผู้ใช้ต้องการแยกการแสดงผลระหว่าง Recent Transactions และ Transfer Search
+          console.log(`Transfer Search result ${index + 1} - ไม่บันทึกใน transaction history:`, {
+            fromName,
+            amountInBaht,
             transactionId: item.transaction_id || `TRF${String(index + 1).padStart(3, '0')}`,
-            transactionTime: item.received_time || new Date().toISOString(),
-            description: `รับเงินจากการค้นหาโอนเงิน - ${phoneNumber} (Transfer Search API)`,
-            sourceType: 'transfer_search'
-          };
-          
-          console.log(`Auto-saving transaction history for transfer ${index + 1}:`, saveData);
-          
-          this.saveTransactionHistory(saveData).then(result => {
-            if (result) {
-              console.log(`✅ Successfully saved transaction history for transfer ${index + 1}`);
-            } else {
-              console.warn(`⚠️ Failed to save transaction history for transfer ${index + 1} (ไม่กระทบผลการค้นหา)`);
-            }
+            description: `ผลการค้นหาโอนเงิน - ${phoneNumber} (Transfer Search API)`
+          });
           }).catch(error => {
             console.warn(`⚠️ Failed to auto-save transfer history ${index + 1} (ไม่กระทบผลการค้นหา):`, error.message);
             // ไม่ throw error เพื่อไม่ให้หยุดการแสดงผลหลัก

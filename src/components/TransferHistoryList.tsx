@@ -26,10 +26,16 @@ export function TransferHistoryList({ transfers }: TransferHistoryListProps) {
   }
 
   return (
-    <div className="max-h-[600px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
-      <div className="text-xs sm:text-sm text-muted-foreground mb-2">
-        พบ {transfers.length} รายการ
-      </div>
+    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6">
+      <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">🔍 ผลการค้นหาโอนเงิน (Transfer Search API)</h2>
+      <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+        แสดงผลการค้นหาจาก Transfer Search API แยกต่างหาก
+      </p>
+      
+      <div className="max-h-[600px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
+        <div className="text-xs sm:text-sm text-accent mb-2">
+          พบ {transfers.length} รายการ
+        </div>
       {transfers.map((transfer, index) => (
         <div
           key={transfer.id}
@@ -107,6 +113,7 @@ export function TransferHistoryList({ transfers }: TransferHistoryListProps) {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

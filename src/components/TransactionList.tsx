@@ -60,7 +60,10 @@ export function TransactionList({ transactions, isLoading = false }: Transaction
 
   return (
     <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-6">
-      <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">รายการล่าสุด</h2>
+      <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">💰 รายการรับเงินล่าสุด (Recent Transactions API)</h2>
+      <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+        แสดงข้อมูลจาก Recent Transactions API เท่านั้น
+      </p>
       
       <div className="max-h-[500px] overflow-y-auto custom-scrollbar-green space-y-2 sm:space-y-3 pr-1">
         {isLoading ? (

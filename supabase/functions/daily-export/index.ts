@@ -135,6 +135,15 @@ Deno.serve(async (req) => {
 
     console.log(`Export completed successfully: ${fileName}`);
 
+    // 5. ส่งอัตโนมัติไปยัง Telegram และ LINE (ถ้าตั้งค่าไว้)
+    const autoSendResults = await performAutoSend(supabaseUrl, serviceKey, {
+      fileUrl,
+      fileName,
+      exportDate,
+      recordCount,
+      autoExport
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -145,6 +154,7 @@ Deno.serve(async (req) => {
           file_name: fileName,
           record_count: recordCount,
           auto_export: autoExport,
+          auto_send: autoSendResults
         },
       }),
       {
@@ -231,4 +241,116 @@ function formatDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// ฟังก์ชันสำหรับส่งอัตโนมัติไปยัง Telegram และ LINE
+async function performAutoSend(supabaseUrl: string, serviceKey: string, data: any) {
+  try {
+    console.log('📤 ตรวจสอบการตั้งค่าการส่งอัตโนมัติ...');
+
+    // ดึงข้อมูลการตั้งค่าจาก export_settings table
+    const settingsResponse = await fetch(
+      `${supabaseUrl}/rest/v1/export_settings?select=*&order=created_at.desc&limit=1`,
+      {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!settingsResponse.ok) {
+      console.log('⚠️ ไม่สามารถดึงข้อมูลการตั้งค่าได้');
+      return { telegram: { sent: false }, line: { sent: false } };
+    }
+
+    const settings = await settingsResponse.json();
+    const userSettings = settings[0]; // ใช้การตั้งค่าล่าสุด
+
+    if (!userSettings) {
+      console.log('ℹ️ ยังไม่มีการตั้งค่าการส่งอัตโนมัติ');
+      return { telegram: { sent: false }, line: { sent: false } };
+    }
+
+    const results = {
+      telegram: { sent: false, message: '' },
+      line: { sent: false, message: '' }
+    };
+
+    // ส่งไปยัง Telegram (ถ้าเปิดใช้งาน)
+    if (userSettings.send_to_telegram && userSettings.telegram_bot_token && userSettings.telegram_chat_id) {
+      try {
+        const telegramResponse = await fetch(`${supabaseUrl}/functions/v1/send-to-telegram`, {
+          method: 'POST',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            telegramBotToken: userSettings.telegram_bot_token,
+            telegramChatId: userSettings.telegram_chat_id,
+            fileUrl: data.fileUrl,
+            fileName: data.fileName,
+            message: `📊 รายงานประจำวัน True Wallet Dashboard\n\n📅 วันที่: ${data.exportDate}\n📋 จำนวนรายการ: ${data.recordCount} รายการ\n\n⏰ ส่งออกอัตโนมัติ: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
+          }),
+        });
+
+        if (telegramResponse.ok) {
+          results.telegram.sent = true;
+          results.telegram.message = 'ส่งไปยัง Telegram สำเร็จ';
+          console.log('✅ ส่งไฟล์ไปยัง Telegram สำเร็จ');
+        } else {
+          const error = await telegramResponse.json();
+          results.telegram.message = `ส่งไปยัง Telegram ล้มเหลว: ${error.error?.message || 'Unknown error'}`;
+          console.error('❌ ส่งไปยัง Telegram ล้มเหลว:', error);
+        }
+      } catch (error) {
+        results.telegram.message = `ส่งไปยัง Telegram ล้มเหลว: ${error.message}`;
+        console.error('❌ ส่งไปยัง Telegram ล้มเหลว:', error);
+      }
+    }
+
+    // ส่งไปยัง LINE (ถ้าเปิดใช้งาน)
+    if (userSettings.send_to_line && userSettings.line_notify_token) {
+      try {
+        const lineResponse = await fetch(`${supabaseUrl}/functions/v1/send-to-line`, {
+          method: 'POST',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lineNotifyToken: userSettings.line_notify_token,
+            fileUrl: data.fileUrl,
+            fileName: data.fileName,
+            exportDate: data.exportDate,
+            recordCount: data.recordCount,
+          }),
+        });
+
+        if (lineResponse.ok) {
+          results.line.sent = true;
+          results.line.message = 'ส่งไปยัง LINE สำเร็จ';
+          console.log('✅ ส่งข้อความไปยัง LINE สำเร็จ');
+        } else {
+          const error = await lineResponse.json();
+          results.line.message = `ส่งไปยัง LINE ล้มเหลว: ${error.error?.message || 'Unknown error'}`;
+          console.error('❌ ส่งไปยัง LINE ล้มเหลว:', error);
+        }
+      } catch (error) {
+        results.line.message = `ส่งไปยัง LINE ล้มเหลว: ${error.message}`;
+        console.error('❌ ส่งไปยัง LINE ล้มเหลว:', error);
+      }
+    }
+
+    console.log('📤 การส่งอัตโนมัติเสร็จสิ้น:', results);
+    return results;
+
+  } catch (error) {
+    console.error('❌ เกิดข้อผิดพลาดในการส่งอัตโนมัติ:', error);
+    return { telegram: { sent: false, message: error.message }, line: { sent: false, message: error.message } };
+  }
 }
